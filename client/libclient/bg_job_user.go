@@ -75,6 +75,11 @@ func (b *BgUserRefresh) refresh(m MetaContext, uc *UserContext) error {
 		return err
 	}
 
+	err = BgRotateYubiManagementKey(m, uc, uw)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

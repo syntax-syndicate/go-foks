@@ -305,6 +305,8 @@ func (r *rotateMgr) post(m MetaContext) error {
 	return err
 }
 
+// updatePPE updates the passphrase encryption system for the new PUK. Only encrypts
+// if the target role is the owner.
 func (r *rotateMgr) updatePPE(m MetaContext) error {
 	if r.selfRevoke {
 		return nil

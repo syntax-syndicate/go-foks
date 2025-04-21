@@ -1592,6 +1592,75 @@ func (t *TreeLocationPair) Decode(dec rpc.Decoder) error {
 
 func (t *TreeLocationPair) Bytes() []byte { return nil }
 
+type YubiEncryptedManagementKey struct {
+	Yk   lib.YubiID
+	Box  lib.SecretBox
+	Gen  lib.Generation
+	Role lib.Role
+}
+
+type YubiEncryptedManagementKeyInternal__ struct {
+	_struct struct{} `codec:",toarray"` //lint:ignore U1000 msgpack internal field
+	Yk      *lib.YubiIDInternal__
+	Box     *lib.SecretBoxInternal__
+	Gen     *lib.GenerationInternal__
+	Role    *lib.RoleInternal__
+}
+
+func (y YubiEncryptedManagementKeyInternal__) Import() YubiEncryptedManagementKey {
+	return YubiEncryptedManagementKey{
+		Yk: (func(x *lib.YubiIDInternal__) (ret lib.YubiID) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Yk),
+		Box: (func(x *lib.SecretBoxInternal__) (ret lib.SecretBox) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Box),
+		Gen: (func(x *lib.GenerationInternal__) (ret lib.Generation) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Gen),
+		Role: (func(x *lib.RoleInternal__) (ret lib.Role) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Role),
+	}
+}
+
+func (y YubiEncryptedManagementKey) Export() *YubiEncryptedManagementKeyInternal__ {
+	return &YubiEncryptedManagementKeyInternal__{
+		Yk:   y.Yk.Export(),
+		Box:  y.Box.Export(),
+		Gen:  y.Gen.Export(),
+		Role: y.Role.Export(),
+	}
+}
+
+func (y *YubiEncryptedManagementKey) Encode(enc rpc.Encoder) error {
+	return enc.Encode(y.Export())
+}
+
+func (y *YubiEncryptedManagementKey) Decode(dec rpc.Decoder) error {
+	var tmp YubiEncryptedManagementKeyInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*y = tmp.Import()
+	return nil
+}
+
+func (y *YubiEncryptedManagementKey) Bytes() []byte { return nil }
+
 var UserProtocolID rpc.ProtocolUniqueID = rpc.ProtocolUniqueID(0x823f0899)
 
 type PingArg struct {
@@ -2982,6 +3051,121 @@ func (c *ClearDeviceNagArg) Decode(dec rpc.Decoder) error {
 
 func (c *ClearDeviceNagArg) Bytes() []byte { return nil }
 
+type PutYubiManagementKeyArg struct {
+	Ymk YubiEncryptedManagementKey
+}
+
+type PutYubiManagementKeyArgInternal__ struct {
+	_struct struct{} `codec:",toarray"` //lint:ignore U1000 msgpack internal field
+	Ymk     *YubiEncryptedManagementKeyInternal__
+}
+
+func (p PutYubiManagementKeyArgInternal__) Import() PutYubiManagementKeyArg {
+	return PutYubiManagementKeyArg{
+		Ymk: (func(x *YubiEncryptedManagementKeyInternal__) (ret YubiEncryptedManagementKey) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(p.Ymk),
+	}
+}
+
+func (p PutYubiManagementKeyArg) Export() *PutYubiManagementKeyArgInternal__ {
+	return &PutYubiManagementKeyArgInternal__{
+		Ymk: p.Ymk.Export(),
+	}
+}
+
+func (p *PutYubiManagementKeyArg) Encode(enc rpc.Encoder) error {
+	return enc.Encode(p.Export())
+}
+
+func (p *PutYubiManagementKeyArg) Decode(dec rpc.Decoder) error {
+	var tmp PutYubiManagementKeyArgInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*p = tmp.Import()
+	return nil
+}
+
+func (p *PutYubiManagementKeyArg) Bytes() []byte { return nil }
+
+type GetYubiManagementKeyArg struct {
+	Yk lib.YubiID
+}
+
+type GetYubiManagementKeyArgInternal__ struct {
+	_struct struct{} `codec:",toarray"` //lint:ignore U1000 msgpack internal field
+	Yk      *lib.YubiIDInternal__
+}
+
+func (g GetYubiManagementKeyArgInternal__) Import() GetYubiManagementKeyArg {
+	return GetYubiManagementKeyArg{
+		Yk: (func(x *lib.YubiIDInternal__) (ret lib.YubiID) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(g.Yk),
+	}
+}
+
+func (g GetYubiManagementKeyArg) Export() *GetYubiManagementKeyArgInternal__ {
+	return &GetYubiManagementKeyArgInternal__{
+		Yk: g.Yk.Export(),
+	}
+}
+
+func (g *GetYubiManagementKeyArg) Encode(enc rpc.Encoder) error {
+	return enc.Encode(g.Export())
+}
+
+func (g *GetYubiManagementKeyArg) Decode(dec rpc.Decoder) error {
+	var tmp GetYubiManagementKeyArgInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*g = tmp.Import()
+	return nil
+}
+
+func (g *GetYubiManagementKeyArg) Bytes() []byte { return nil }
+
+type GetAllYubiManagementKeysArg struct {
+}
+
+type GetAllYubiManagementKeysArgInternal__ struct {
+	_struct struct{} `codec:",toarray"` //lint:ignore U1000 msgpack internal field
+}
+
+func (g GetAllYubiManagementKeysArgInternal__) Import() GetAllYubiManagementKeysArg {
+	return GetAllYubiManagementKeysArg{}
+}
+
+func (g GetAllYubiManagementKeysArg) Export() *GetAllYubiManagementKeysArgInternal__ {
+	return &GetAllYubiManagementKeysArgInternal__{}
+}
+
+func (g *GetAllYubiManagementKeysArg) Encode(enc rpc.Encoder) error {
+	return enc.Encode(g.Export())
+}
+
+func (g *GetAllYubiManagementKeysArg) Decode(dec rpc.Decoder) error {
+	var tmp GetAllYubiManagementKeysArgInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*g = tmp.Import()
+	return nil
+}
+
+func (g *GetAllYubiManagementKeysArg) Bytes() []byte { return nil }
+
 type UserInterface interface {
 	Ping(context.Context) (lib.UID, error)
 	SetPassphrase(context.Context, SetPassphraseArg) error
@@ -3009,6 +3193,9 @@ type UserInterface interface {
 	GetHostConfig(context.Context) (lib.HostConfig, error)
 	GetDeviceNag(context.Context) (lib.DeviceNagInfo, error)
 	ClearDeviceNag(context.Context, bool) error
+	PutYubiManagementKey(context.Context, YubiEncryptedManagementKey) error
+	GetYubiManagementKey(context.Context, lib.YubiID) (YubiEncryptedManagementKey, error)
+	GetAllYubiManagementKeys(context.Context) ([]YubiEncryptedManagementKey, error)
 	ErrorWrapper() func(error) lib.Status
 	CheckArgHeader(ctx context.Context, h lib.Header) error
 
@@ -3651,6 +3838,95 @@ func (c UserClient) ClearDeviceNag(ctx context.Context, cleared bool) (err error
 			return
 		}
 	}
+	return
+}
+
+func (c UserClient) PutYubiManagementKey(ctx context.Context, ymk YubiEncryptedManagementKey) (err error) {
+	arg := PutYubiManagementKeyArg{
+		Ymk: ymk,
+	}
+	warg := &rpc.DataWrap[lib.Header, *PutYubiManagementKeyArgInternal__]{
+		Data: arg.Export(),
+	}
+	if c.MakeArgHeader != nil {
+		warg.Header = c.MakeArgHeader()
+	}
+	var tmp rpc.DataWrap[lib.Header, interface{}]
+	err = c.Cli.Call2(ctx, rpc.NewMethodV2(UserProtocolID, 27, "User.putYubiManagementKey"), warg, &tmp, 0*time.Millisecond, userErrorUnwrapperAdapter{h: c.ErrorUnwrapper})
+	if err != nil {
+		return
+	}
+	if c.CheckResHeader != nil {
+		err = c.CheckResHeader(ctx, tmp.Header)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (c UserClient) GetYubiManagementKey(ctx context.Context, yk lib.YubiID) (res YubiEncryptedManagementKey, err error) {
+	arg := GetYubiManagementKeyArg{
+		Yk: yk,
+	}
+	warg := &rpc.DataWrap[lib.Header, *GetYubiManagementKeyArgInternal__]{
+		Data: arg.Export(),
+	}
+	if c.MakeArgHeader != nil {
+		warg.Header = c.MakeArgHeader()
+	}
+	var tmp rpc.DataWrap[lib.Header, YubiEncryptedManagementKeyInternal__]
+	err = c.Cli.Call2(ctx, rpc.NewMethodV2(UserProtocolID, 28, "User.getYubiManagementKey"), warg, &tmp, 0*time.Millisecond, userErrorUnwrapperAdapter{h: c.ErrorUnwrapper})
+	if err != nil {
+		return
+	}
+	if c.CheckResHeader != nil {
+		err = c.CheckResHeader(ctx, tmp.Header)
+		if err != nil {
+			return
+		}
+	}
+	res = tmp.Data.Import()
+	return
+}
+
+func (c UserClient) GetAllYubiManagementKeys(ctx context.Context) (res []YubiEncryptedManagementKey, err error) {
+	var arg GetAllYubiManagementKeysArg
+	warg := &rpc.DataWrap[lib.Header, *GetAllYubiManagementKeysArgInternal__]{
+		Data: arg.Export(),
+	}
+	if c.MakeArgHeader != nil {
+		warg.Header = c.MakeArgHeader()
+	}
+	var tmp rpc.DataWrap[lib.Header, [](*YubiEncryptedManagementKeyInternal__)]
+	err = c.Cli.Call2(ctx, rpc.NewMethodV2(UserProtocolID, 29, "User.getAllYubiManagementKeys"), warg, &tmp, 0*time.Millisecond, userErrorUnwrapperAdapter{h: c.ErrorUnwrapper})
+	if err != nil {
+		return
+	}
+	if c.CheckResHeader != nil {
+		err = c.CheckResHeader(ctx, tmp.Header)
+		if err != nil {
+			return
+		}
+	}
+	res = (func(x *[](*YubiEncryptedManagementKeyInternal__)) (ret []YubiEncryptedManagementKey) {
+		if x == nil || len(*x) == 0 {
+			return nil
+		}
+		ret = make([]YubiEncryptedManagementKey, len(*x))
+		for k, v := range *x {
+			if v == nil {
+				continue
+			}
+			ret[k] = (func(x *YubiEncryptedManagementKeyInternal__) (ret YubiEncryptedManagementKey) {
+				if x == nil {
+					return ret
+				}
+				return x.Import()
+			})(v)
+		}
+		return ret
+	})(&tmp.Data)
 	return
 }
 
@@ -4394,6 +4670,103 @@ func UserProtocol(i UserInterface) rpc.ProtocolV2 {
 					},
 				},
 				Name: "clearDeviceNag",
+			},
+			27: {
+				ServeHandlerDescription: rpc.ServeHandlerDescription{
+					MakeArg: func() interface{} {
+						var ret rpc.DataWrap[lib.Header, *PutYubiManagementKeyArgInternal__]
+						return &ret
+					},
+					Handler: func(ctx context.Context, args interface{}) (interface{}, error) {
+						typedWrappedArg, ok := args.(*rpc.DataWrap[lib.Header, *PutYubiManagementKeyArgInternal__])
+						if !ok {
+							err := rpc.NewTypeError((*rpc.DataWrap[lib.Header, *PutYubiManagementKeyArgInternal__])(nil), args)
+							return nil, err
+						}
+						if err := i.CheckArgHeader(ctx, typedWrappedArg.Header); err != nil {
+							return nil, err
+						}
+						typedArg := typedWrappedArg.Data
+						err := i.PutYubiManagementKey(ctx, (typedArg.Import()).Ymk)
+						if err != nil {
+							return nil, err
+						}
+						ret := rpc.DataWrap[lib.Header, interface{}]{
+							Header: i.MakeResHeader(),
+						}
+						return &ret, nil
+					},
+				},
+				Name: "putYubiManagementKey",
+			},
+			28: {
+				ServeHandlerDescription: rpc.ServeHandlerDescription{
+					MakeArg: func() interface{} {
+						var ret rpc.DataWrap[lib.Header, *GetYubiManagementKeyArgInternal__]
+						return &ret
+					},
+					Handler: func(ctx context.Context, args interface{}) (interface{}, error) {
+						typedWrappedArg, ok := args.(*rpc.DataWrap[lib.Header, *GetYubiManagementKeyArgInternal__])
+						if !ok {
+							err := rpc.NewTypeError((*rpc.DataWrap[lib.Header, *GetYubiManagementKeyArgInternal__])(nil), args)
+							return nil, err
+						}
+						if err := i.CheckArgHeader(ctx, typedWrappedArg.Header); err != nil {
+							return nil, err
+						}
+						typedArg := typedWrappedArg.Data
+						tmp, err := i.GetYubiManagementKey(ctx, (typedArg.Import()).Yk)
+						if err != nil {
+							return nil, err
+						}
+						ret := rpc.DataWrap[lib.Header, *YubiEncryptedManagementKeyInternal__]{
+							Data:   tmp.Export(),
+							Header: i.MakeResHeader(),
+						}
+						return &ret, nil
+					},
+				},
+				Name: "getYubiManagementKey",
+			},
+			29: {
+				ServeHandlerDescription: rpc.ServeHandlerDescription{
+					MakeArg: func() interface{} {
+						var ret rpc.DataWrap[lib.Header, *GetAllYubiManagementKeysArgInternal__]
+						return &ret
+					},
+					Handler: func(ctx context.Context, args interface{}) (interface{}, error) {
+						typedWrappedArg, ok := args.(*rpc.DataWrap[lib.Header, *GetAllYubiManagementKeysArgInternal__])
+						if !ok {
+							err := rpc.NewTypeError((*rpc.DataWrap[lib.Header, *GetAllYubiManagementKeysArgInternal__])(nil), args)
+							return nil, err
+						}
+						if err := i.CheckArgHeader(ctx, typedWrappedArg.Header); err != nil {
+							return nil, err
+						}
+						tmp, err := i.GetAllYubiManagementKeys(ctx)
+						if err != nil {
+							return nil, err
+						}
+						lst := (func(x []YubiEncryptedManagementKey) *[](*YubiEncryptedManagementKeyInternal__) {
+							if len(x) == 0 {
+								return nil
+							}
+							ret := make([](*YubiEncryptedManagementKeyInternal__), len(x))
+							for k, v := range x {
+								ret[k] = v.Export()
+							}
+							return &ret
+						})(tmp)
+						ret := rpc.DataWrap[lib.Header, [](*YubiEncryptedManagementKeyInternal__)]{
+							Header: i.MakeResHeader(),
+						}
+						if lst != nil {
+							ret.Data = *lst
+						}
+						return &ret, nil
+					},
+				},
+				Name: "getAllYubiManagementKeys",
 			},
 		},
 		WrapError: UserMakeGenericErrorWrapper(i.ErrorWrapper()),

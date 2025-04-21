@@ -1300,6 +1300,167 @@ func (c *UserClientConn) ClearDeviceNag(
 	return err
 }
 
+func (c *UserClientConn) PutYubiManagementKey(
+	ctx context.Context,
+	yemk rem.YubiEncryptedManagementKey,
+) error {
+	m := shared.NewMetaContextConn(ctx, c)
+	db, err := m.Db(shared.DbTypeUsers)
+	if err != nil {
+		return err
+	}
+	defer db.Release()
+
+	rawBox, err := core.EncodeToBytes(&yemk.Box)
+	if err != nil {
+		return err
+	}
+	rt, rl, err := yemk.Role.ExportToDB()
+	if err != nil {
+		return err
+	}
+
+	tag, err := db.Exec(
+		ctx,
+		`INSERT INTO yubi_mgmt_keys
+		 (short_host_id, uid, key_id, ctime, mtime, box, puk_gen, puk_role_type, puk_viz_level)
+		 VALUES ($1, $2, $3, NOW(), NOW(), $4, $5, $6, $7)
+		 ON CONFLICT (short_host_id, uid, key_id) 
+		 DO UPDATE SET 
+			 box=EXCLUDED.box,
+			 puk_gen=EXCLUDED.puk_gen, 
+			 mtime=NOW(),
+			 puk_role_type=EXCLUDED.puk_role_type, 
+			 puk_viz_level=EXCLUDED.puk_viz_level
+		 WHERE yubi_mgmt_keys.puk_gen <= EXCLUDED.puk_gen`,
+		m.ShortHostID().ExportToDB(),
+		m.UID().ExportToDB(),
+		yemk.Yk.EntityID().ExportToDB(),
+		rawBox,
+		int(yemk.Gen),
+		rt,
+		rl,
+	)
+	if err != nil {
+		return err
+	}
+	switch tag.RowsAffected() {
+	case 1:
+		return nil
+	case 0:
+		return core.BadArgsError("can only replace with a newer generation")
+	default:
+		return core.InsertError("yubi_mgmt_keys")
+	}
+}
+
+func (c *UserClientConn) GetYubiManagementKey(
+	ctx context.Context,
+	yid proto.YubiID,
+) (
+	rem.YubiEncryptedManagementKey,
+	error,
+) {
+	var zed rem.YubiEncryptedManagementKey
+	m := shared.NewMetaContextConn(ctx, c)
+	db, err := m.Db(shared.DbTypeUsers)
+	if err != nil {
+		return zed, err
+	}
+	defer db.Release()
+
+	var rawBox []byte
+	var gen, rt, rl int
+	err = db.QueryRow(
+		ctx,
+		`SELECT box, puk_gen, puk_role_type, puk_viz_level
+		 FROM yubi_mgmt_keys
+		 WHERE short_host_id=$1 AND uid=$2 AND key_id=$3`,
+		m.ShortHostID().ExportToDB(),
+		m.UID().ExportToDB(),
+		yid.EntityID().ExportToDB(),
+	).Scan(&rawBox, &gen, &rt, &rl)
+	if err == pgx.ErrNoRows {
+		return zed, core.KeyNotFoundError{Which: "yubi_mgmt_key"}
+	}
+	if err != nil {
+		return zed, err
+	}
+	ret := rem.YubiEncryptedManagementKey{
+		Yk:  yid,
+		Gen: proto.Generation(gen),
+	}
+	err = core.DecodeFromBytes(&ret.Box, rawBox)
+	if err != nil {
+		return zed, err
+	}
+	tmp, err := proto.ImportRoleFromDB(rt, rl)
+	if err != nil {
+		return zed, err
+	}
+	ret.Role = *tmp
+	return ret, nil
+}
+
+func (c *UserClientConn) GetAllYubiManagementKeys(
+	ctx context.Context,
+) (
+	[]rem.YubiEncryptedManagementKey,
+	error,
+) {
+	m := shared.NewMetaContextConn(ctx, c)
+	db, err := m.Db(shared.DbTypeUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Release()
+
+	rows, err := db.Query(
+		ctx,
+		`SELECT key_id, box, puk_gen, puk_role_type, puk_viz_level
+		FROM yubi_mgmt_keys
+		WHERE short_host_id=$1 AND uid=$2`,
+		m.ShortHostID().ExportToDB(),
+		m.UID().ExportToDB(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ret []rem.YubiEncryptedManagementKey
+	for rows.Next() {
+		var rawId, rawBox []byte
+		var gen, rt, vl int
+
+		err := rows.Scan(&rawId, &rawBox, &gen, &rt, &vl)
+		if err != nil {
+			return nil, err
+		}
+		row := rem.YubiEncryptedManagementKey{
+			Gen: proto.Generation(gen),
+		}
+		err = core.DecodeFromBytes(&row.Box, rawBox)
+		if err != nil {
+			return nil, err
+		}
+		eid, err := proto.ImportEntityIDFromBytes(rawId)
+		if err != nil {
+			return nil, err
+		}
+		row.Yk, err = eid.ToYubiID()
+		if err != nil {
+			return nil, err
+		}
+		tmp, err := proto.ImportRoleFromDB(rt, vl)
+		if err != nil {
+			return nil, err
+		}
+		row.Role = *tmp
+		ret = append(ret, row)
+	}
+	return ret, nil
+}
+
 var _ rem.UserInterface = (*UserClientConn)(nil)
 var _ infra.TestServicesInterface = (*UserClientConn)(nil)
 var _ rem.ProbeInterface = (*UserClientConn)(nil)

@@ -18,19 +18,11 @@ import (
 type BusBase struct {
 	sync.Mutex
 	handleTab map[proto.YubiCardName]*Handle
-	pt        *PINTable
-}
-
-func newPINTable() *PINTable {
-	return &PINTable{
-		pins: make(map[proto.FixedEntityID]*core.Pin),
-	}
 }
 
 func newBusBase() *BusBase {
 	return &BusBase{
 		handleTab: make(map[proto.YubiCardName]*Handle),
-		pt:        newPINTable(),
 	}
 }
 
@@ -60,8 +52,6 @@ func (h *Handle) clearSecrets() {
 	h.pin = nil
 	h.mgmt = nil
 }
-
-func (b *RealBus) PINTable() *PINTable { return b.pt }
 
 func (h *Handle) decref() {
 	h.Lock()
@@ -240,16 +230,4 @@ func checkIsEC256(cert *x509.Certificate) *ecdsa.PublicKey {
 		return nil
 	}
 	return ecdsa
-}
-
-func (p *PINTable) Get(id proto.FixedEntityID) *core.Pin {
-	p.Lock()
-	defer p.Unlock()
-	return p.pins[id]
-}
-
-func (p *PINTable) Put(id proto.FixedEntityID, pin *core.Pin) {
-	p.Lock()
-	defer p.Unlock()
-	p.pins[id] = pin
 }

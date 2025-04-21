@@ -580,21 +580,31 @@ func generateKey(
 	}, nil
 }
 
-func findCardBySerial(ctx context.Context, bus Bus, serial proto.YubiSerial) (*proto.YubiCardInfo, error) {
+func findCardIDBySerial(
+	ctx context.Context,
+	bus Bus,
+	serial proto.YubiSerial,
+) (
+	*proto.YubiCardID,
+	error,
+) {
 	v, err := listCards(ctx, bus)
 	if err != nil {
 		return nil, err
 	}
-	var found *proto.YubiCardID
 	for _, card := range v {
 		if card.Serial == serial {
 			tmp := card
-			found = &tmp
-			break
+			return &tmp, nil
 		}
 	}
-	if found == nil {
-		return nil, core.YubiError("card not found")
+	return nil, core.YubiError("card not found")
+}
+
+func findCardBySerial(ctx context.Context, bus Bus, serial proto.YubiSerial) (*proto.YubiCardInfo, error) {
+	found, err := findCardIDBySerial(ctx, bus, serial)
+	if err != nil {
+		return nil, err
 	}
 	card, err := explore(ctx, bus, *found)
 	if err != nil {
@@ -714,4 +724,72 @@ func hasDefaultManagementKey(
 		return false, err
 	}
 	return def, nil
+}
+
+func getManagementKey(
+	ctx context.Context,
+	bus Bus,
+	id proto.YubiCardID,
+) (
+	*proto.YubiManagementKey,
+	error,
+) {
+	_, h, close, err := openCardByID(ctx, bus, id)
+	if err != nil {
+		return nil, err
+	}
+	defer close()
+	mk := h.ManagementKey()
+	return mk, nil
+}
+
+func setManagementKey(
+	ctx context.Context,
+	bus Bus,
+	id proto.YubiCardID,
+	old *proto.YubiManagementKey,
+	new proto.YubiManagementKey,
+) error {
+	card, h, close, err := openCardByID(ctx, bus, id)
+	if err != nil {
+		return err
+	}
+	defer close()
+	h.clearSecrets()
+	return card.SetManagementKey(old, new)
+}
+
+func resetPINandPUK(
+	ctx context.Context,
+	bus Bus,
+	id proto.YubiCardID,
+	mk proto.YubiManagementKey,
+	pin proto.YubiPIN,
+	puk proto.YubiPUK,
+) error {
+	card, h, close, err := openCardByID(ctx, bus, id)
+	if err != nil {
+		return err
+	}
+	defer close()
+	h.clearSecrets()
+
+	err = card.SetRetries(mk, 3, 3)
+	if err != nil {
+		return err
+	}
+
+	var defPin proto.YubiPIN
+	err = card.SetPIN(defPin, pin)
+	if err != nil {
+		return err
+	}
+
+	var defPuk proto.YubiPUK
+	err = card.SetPUK(defPuk, puk)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

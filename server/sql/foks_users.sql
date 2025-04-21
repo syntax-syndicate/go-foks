@@ -888,3 +888,16 @@ CREATE TABLE data_loss_nag (
     cleared BOOLEAN NOT NULL,
     PRIMARY KEY(short_host_id, uid)
 );
+
+CREATE TABLE yubi_mgmt_keys (
+    short_host_id SMALLINT NOT NULL,
+    uid BYTEA NOT NULL,
+    key_id BYTEA NOT NULL,
+    box BYTEA NOT NULL,
+    puk_gen INTEGER NOT NULL,
+    puk_role_type SMALLINT NOT NULL,
+    puk_viz_level SMALLINT NOT NULL,
+    ctime TIMESTAMP NOT NULL,
+    mtime TIMESTAMP NOT NULL,
+    PRIMARY KEY(short_host_id, uid, key_id)
+);

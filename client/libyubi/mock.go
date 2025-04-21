@@ -374,10 +374,6 @@ func (m *MockBus) Handle(ctx context.Context, nm proto.YubiCardName) (*Handle, e
 	return m.BusBase.handle(ctx, m, nm)
 }
 
-func (m *MockBus) PINTable() *PINTable {
-	return m.BusBase.pt
-}
-
 func (c *MockCard) validatePINLocked(p proto.YubiPIN) error {
 	existing := fillDefaultPINp(c.pin)
 	p = fillDefaultPIN(p)
@@ -555,6 +551,32 @@ func (c *MockCard) HasDefaultManagementKey() (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+func (c *MockCard) SetRetries(
+	mk proto.YubiManagementKey,
+	pin int,
+	puk int,
+) error {
+	c.Lock()
+	defer c.Unlock()
+	err := c.validateManagementKey(&mk)
+	if err != nil {
+		return err
+	}
+	def := proto.YubiPIN(piv.DefaultPIN)
+	defPuk := proto.YubiPUK(piv.DefaultPUK)
+	c.pin = &def
+	c.puk = &defPuk
+	c.nBadPINs = 0
+	c.nBadPUKs = 0
+	c.retryLimits = &retryLimits{
+		pin: pin,
+		puk: puk,
+	}
+	c.pinVerified = false
+	c.hasPEMK = true
+	return nil
 }
 
 var _ Bus = (*MockBus)(nil)

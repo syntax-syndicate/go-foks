@@ -20,6 +20,7 @@ type switchCmdCfg struct {
 	role   string
 	yubi   bool
 	device bool
+	keyID  string
 }
 
 func switchCmd(m libclient.MetaContext) *cobra.Command {
@@ -37,6 +38,7 @@ func switchCmd(m libclient.MetaContext) *cobra.Command {
 	cmd.Flags().StringVarP(&cfg.role, "role", "", "", "role (e.g., 'o', 'a', or 'm0' or 'm-30')")
 	cmd.Flags().BoolVarP(&cfg.yubi, "yubi", "", false, "switch to yubikey-based user account")
 	cmd.Flags().BoolVarP(&cfg.device, "device", "", false, "switch to device-based user account")
+	cmd.Flags().StringVarP(&cfg.keyID, "key-id", "", "", "key ID to switch to (optional)")
 	return cmd
 }
 
@@ -264,6 +266,15 @@ func runSwitch(m libclient.MetaContext, cmd *cobra.Command, cfg *switchCmdCfg, a
 	}
 	defer clean()
 
+	var eid proto.EntityID
+	if cfg.keyID != "" {
+		tmp, err := proto.ImportEntityIDFromString(cfg.keyID)
+		if err != nil {
+			return err
+		}
+		eid = tmp
+	}
+
 	fqu, err := parseFqu(cfg.fqu)
 	if err != nil {
 		return err
@@ -288,12 +299,16 @@ func runSwitch(m libclient.MetaContext, cmd *cobra.Command, cfg *switchCmdCfg, a
 			Fqu:      *fqu,
 			Role:     *role,
 			KeyGenus: kg,
+			KeyID:    eid,
 		})
 		return err
 	}
 
 	if len(cfg.role) > 0 {
 		return ArgsError("can only use -r flag with -u flag")
+	}
+	if eid != nil {
+		return ArgsError("can only use --key-id flag with -u flag")
 	}
 
 	err = ui.RunSwitch(m, cli)

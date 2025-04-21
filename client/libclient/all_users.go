@@ -509,32 +509,25 @@ func LookupUserInAllUsers(
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			matches = append(matches, e)
+		if !ok {
+			continue
 		}
+
+		if u.KeyGenus != nil && e.KeyGenus != *u.KeyGenus {
+			continue
+		}
+		if u.KeyID != nil && !e.Key.Eq(u.KeyID) {
+			continue
+		}
+		matches = append(matches, e)
 	}
 
 	switch {
 	case len(matches) == 0:
 		return nil, core.UserNotFoundError{}
-	case len(matches) == 2 && u.KeyGenus == nil:
-		return nil, core.AmbiguousError("two users exist that match query; must specify key genus")
-	case len(matches) == 2 && u.KeyGenus != nil:
-		for _, e := range matches {
-			if *u.KeyGenus == e.KeyGenus {
-				return &e, nil
-			}
-		}
-		return nil, core.UserNotFoundError{}
-	case len(matches) > 2:
-		return nil, core.InternalError("too many users found")
-	case len(matches) == 1 && u.KeyGenus == nil:
-		return &matches[0], nil
-	case len(matches) == 1 && u.KeyGenus != nil:
-		if *u.KeyGenus != matches[0].KeyGenus {
-			return nil, core.UserNotFoundError{}
-		}
+	case len(matches) > 1:
+		return nil, core.AmbiguousError("two or more users match query; must specify key genus or key ID to disambiguate")
+	default:
 		return &matches[0], nil
 	}
-	return nil, core.InternalError("unreachable case")
 }

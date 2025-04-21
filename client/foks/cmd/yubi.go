@@ -4,6 +4,9 @@
 package cmd
 
 import (
+	"strings"
+	"unicode"
+
 	"github.com/foks-proj/go-foks/client/agent"
 	"github.com/foks-proj/go-foks/client/foks/cmd/ui"
 	"github.com/foks-proj/go-foks/client/libclient"
@@ -224,6 +227,38 @@ func yubiNewCmd(m libclient.MetaContext) *cobra.Command {
 	return new
 }
 
+type yubiRecoverCfg struct {
+	mk     string
+	newPin string
+	newPuk string
+	serial int
+}
+
+func yubiRecoverCmd(m libclient.MetaContext) *cobra.Command {
+	var cfg yubiRecoverCfg
+	recover := &cobra.Command{
+		Use:     "recover",
+		Aliases: []string{"recover-pin"},
+		Short:   "Recover a locked YubiKey after PIN block",
+		Long: `Recover a locked YubiKey after PIN block. The YubiKey gets locked
+after 3 failed PIN attempts. You can unlock the YubiKey with knowledge of the 
+24-byte "management key". When possible, FOKS will encrypt your management key
+with your latest per-user key (PUK) and store it to the server. This configuration
+allows you to recover the management key, which allows you to unblock the key
+and reset your PIN.`,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, arg []string) error {
+			return runYubiRecover(m, cmd, arg, &cfg)
+		},
+	}
+	recover.Flags().StringVar(&cfg.mk, "management-key", "", "management key to use for recovery (base62-encoded)")
+	recover.Flags().StringVar(&cfg.newPin, "new-pin", "", "new YubiKey PIN")
+	recover.Flags().StringVar(&cfg.newPuk, "new-puk", "", "new YubiKey PUK")
+	recover.Flags().IntVar(&cfg.serial, "serial", 0, "serial number of the YubiKey to recover")
+	return recover
+
+}
+
 func yubiCmd(m libclient.MetaContext) *cobra.Command {
 	top := &cobra.Command{
 		Use:          "yubikey",
@@ -256,6 +291,7 @@ func yubiCmd(m libclient.MetaContext) *cobra.Command {
 	top.AddCommand(yubiUnlockCmd(m))
 	top.AddCommand(yubiNewCmd(m))
 	top.AddCommand(yubiSetPinCmd(m))
+	top.AddCommand(yubiRecoverCmd(m))
 
 	return top
 }
@@ -649,6 +685,91 @@ func runYubiUse(
 	}
 
 	return nil
+}
+
+func removeAllWhitespace(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
+func runYubiRecoverSimpleUI(
+	m libclient.MetaContext,
+	serial proto.YubiSerial,
+	pin proto.YubiPIN,
+	puk proto.YubiPUK,
+	mk *proto.YubiManagementKey,
+) error {
+	return withClient(m, func(cli lcl.YubiClient) error {
+		return cli.RecoverManagementKey(
+			m.Ctx(),
+			lcl.RecoverManagementKeyArg{
+				Serial: serial,
+				Pin:    pin,
+				Puk:    puk,
+				Mk:     mk,
+			},
+		)
+	})
+}
+
+func runYubiRecover(
+	m libclient.MetaContext,
+	cmd *cobra.Command,
+	arg []string,
+	cfg *yubiRecoverCfg,
+) error {
+
+	var mk *proto.YubiManagementKey
+	if cfg.mk != "" {
+		raw, err := core.B62Decode(removeAllWhitespace(cfg.mk))
+		if err != nil {
+			return core.BadArgsError("bad management key specified")
+		}
+		var tmp proto.YubiManagementKey
+		if len(raw) != len(tmp) {
+			return core.BadArgsError("bad management key specified; wrong length")
+		}
+		copy(tmp[:], raw)
+		mk = &tmp
+	}
+
+	needUser := mk == nil
+
+	err := agent.Startup(m, agent.StartupOpts{NeedUser: needUser, NeedUnlockedUser: needUser})
+	if err != nil {
+		return err
+	}
+
+	var pin proto.YubiPIN
+	if cfg.newPin != "" {
+		pin = proto.YubiPIN(cfg.newPin)
+		if !pin.IsValid() {
+			return core.BadArgsError("bad new PIN specified")
+		}
+	}
+	var puk proto.YubiPUK
+	if cfg.newPuk != "" {
+		puk = proto.YubiPUK(cfg.newPuk)
+		if !puk.IsValid() {
+			return core.BadArgsError("bad new PUK specified")
+		}
+	}
+	if pin.IsZero() != puk.IsZero() {
+		return core.BadArgsError("must specify both new-pin and new-puk")
+	}
+	if !pin.IsZero() && cfg.serial == 0 {
+		return core.BadArgsError("must specify --serial with new-pin and new-puk")
+	}
+	if !pin.IsZero() && !puk.IsZero() {
+		serial := proto.YubiSerial(cfg.serial)
+		return runYubiRecoverSimpleUI(m, serial, pin, puk, mk)
+	}
+
+	return core.BadArgsError("UI-wizard not implemented; please use CLI args")
 }
 
 func init() {

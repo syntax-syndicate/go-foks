@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/foks-proj/go-foks/client/libclient"
 	"github.com/foks-proj/go-foks/client/libyubi"
 	"github.com/foks-proj/go-foks/integration-tests/common"
@@ -23,6 +22,7 @@ import (
 	"github.com/foks-proj/go-foks/proto/rem"
 	"github.com/foks-proj/go-foks/server/shared"
 	"github.com/foks-proj/go-snowpack-rpc/rpc"
+	"github.com/stretchr/testify/require"
 )
 
 var globalTestEnv *common.TestEnv
@@ -881,7 +881,7 @@ func (u *TestUser) ClientCertRobust(ctx context.Context, t *testing.T) *tls.Cert
 func (u *TestUser) ClientSubkeyCertRobust(ctx context.Context, t *testing.T) *tls.Certificate {
 	subkey := u.GetSubkey(t, ctx)
 
-	cli, closeFn, err := newRegClient(ctx)
+	cli, closeFn, err := u.newRegClient(ctx)
 	require.NoError(t, err)
 	defer closeFn()
 

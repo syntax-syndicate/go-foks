@@ -68,6 +68,16 @@ func (d *Dispatch) LoadHybrid(
 	return loadHybrid(ctx, d.bus, i, r, h)
 }
 
+func (d *Dispatch) GetManagementKey(
+	ctx context.Context,
+	i proto.YubiCardID,
+) (
+	*proto.YubiManagementKey,
+	error,
+) {
+	return getManagementKey(ctx, d.bus, i)
+}
+
 // AccessPQKey uses a preexsiting ECDSA key as a PQ
 // KEM seed slot. It should not be used to create new keys, since that would imply
 // reusing an ECDSA key as a PQKey, which is dangerous. However, it can be used safely
@@ -161,6 +171,13 @@ func (d *Dispatch) GenerateKeyHybrid(
 	return generateKeyHybrid(ctx, d.bus, i, slot, kemSlot, r, h, opts)
 }
 
+func (d *Dispatch) FindCardIDBySerial(
+	ctx context.Context,
+	serial proto.YubiSerial,
+) (*proto.YubiCardID, error) {
+	return findCardIDBySerial(ctx, d.bus, serial)
+}
+
 func (d *Dispatch) FindCardBySerial(
 	ctx context.Context,
 	serial proto.YubiSerial,
@@ -203,6 +220,16 @@ func (d *Dispatch) SetPIN(
 	return setPIN(ctx, d.bus, id, old, new)
 }
 
+func (d *Dispatch) ResetPINandPUK(
+	ctx context.Context,
+	id proto.YubiCardID,
+	mk proto.YubiManagementKey,
+	pin proto.YubiPIN,
+	puk proto.YubiPUK,
+) error {
+	return resetPINandPUK(ctx, d.bus, id, mk, pin, puk)
+}
+
 func (d *Dispatch) HasDefaultManagementKey(
 	ctx context.Context,
 	id proto.YubiCardID,
@@ -220,6 +247,15 @@ func (d *Dispatch) SetOrGetManagementKey(
 	error,
 ) {
 	return setOrGetManagementKey(ctx, d.bus, id, pin)
+}
+
+func (d *Dispatch) SetManagementKey(
+	ctx context.Context,
+	id proto.YubiCardID,
+	old *proto.YubiManagementKey,
+	new proto.YubiManagementKey,
+) error {
+	return setManagementKey(ctx, d.bus, id, old, new)
 }
 
 func (d *Dispatch) ClearSecrets() {

@@ -4716,3 +4716,7 @@ func (m YubiManagementKey) IsZero() bool {
 func (k YubiManagementKey) Eq(i YubiManagementKey) bool {
 	return hmac.Equal(k[:], i[:])
 }
+
+func (i YubiCardID) Eq(i2 YubiCardID) bool {
+	return i.Name == i2.Name && i.Serial == i2.Serial
+}

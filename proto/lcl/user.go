@@ -16,6 +16,7 @@ type LocalUserIndexParsed struct {
 	Fqu      lib.FQUserParsed
 	Role     lib.Role
 	KeyGenus *lib.KeyGenus
+	KeyID    lib.EntityID
 }
 
 type LocalUserIndexParsedInternal__ struct {
@@ -23,6 +24,7 @@ type LocalUserIndexParsedInternal__ struct {
 	Fqu      *lib.FQUserParsedInternal__
 	Role     *lib.RoleInternal__
 	KeyGenus *lib.KeyGenusInternal__
+	KeyID    *lib.EntityIDInternal__
 }
 
 func (l LocalUserIndexParsedInternal__) Import() LocalUserIndexParsed {
@@ -51,6 +53,12 @@ func (l LocalUserIndexParsedInternal__) Import() LocalUserIndexParsed {
 			})(x)
 			return &tmp
 		})(l.KeyGenus),
+		KeyID: (func(x *lib.EntityIDInternal__) (ret lib.EntityID) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(l.KeyID),
 	}
 }
 
@@ -64,6 +72,7 @@ func (l LocalUserIndexParsed) Export() *LocalUserIndexParsedInternal__ {
 			}
 			return (*x).Export()
 		})(l.KeyGenus),
+		KeyID: l.KeyID.Export(),
 	}
 }
 

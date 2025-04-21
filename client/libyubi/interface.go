@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"sync"
 
-	"github.com/foks-proj/go-foks/lib/core"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/go-piv/piv-go/v2/piv"
 )
@@ -18,11 +17,6 @@ import (
 type KeyLoc struct {
 	Serial proto.YubiSerial
 	Slot   proto.YubiSlot
-}
-
-type PINTable struct {
-	sync.Mutex
-	pins map[proto.FixedEntityID]*core.Pin
 }
 
 type BusType int
@@ -37,7 +31,6 @@ type Bus interface {
 	Cards(ctx context.Context, filter bool) ([]proto.YubiCardName, error)
 	Handle(ctx context.Context, n proto.YubiCardName) (*Handle, error)
 	Slot(proto.YubiSlot) (piv.Slot, error)
-	PINTable() *PINTable
 	Type() BusType
 	ClearSecrets()
 
@@ -57,6 +50,9 @@ type Handle struct {
 	// by the given pin, that will be present here too.
 	pin  *proto.YubiPIN
 	mgmt *proto.YubiManagementKey
+
+	// keep track of the owners of the various slots on the card.
+	owners map[proto.FQUser]map[proto.YubiSlot]proto.YubiID
 }
 
 type Card interface {
@@ -81,4 +77,7 @@ type Card interface {
 	// between the two operations. Return true if made a new key, and false if
 	// just returning the existing key.
 	SetOrGetManagementKey(pin proto.YubiPIN) (*proto.YubiManagementKey, bool, error)
+
+	// Resets the PIN and PUK
+	SetRetries(proto.YubiManagementKey, int, int) error
 }

@@ -95,4 +95,11 @@ protocol Yubi
         sessionId @0 : lib.UISessionID
     );
 
+    recoverManagementKey @16 (
+        serial @0 : lib.YubiSerial,
+        pin @1 : lib.YubiPIN,
+        puk @2 : lib.YubiPUK,
+        mk @3 : Option(lib.YubiManagementKey)
+    );
+
 }

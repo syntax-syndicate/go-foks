@@ -23,6 +23,12 @@ func TestYubiSetPIN(t *testing.T) {
 	merklePoke(t)
 	b := bob.agent
 	defer b.stop(t)
+
+	status := b.status(t)
+	require.Equal(t, 1, len(status.Users))
+	eldest := status.Users[0].Key
+	username := status.Users[0].Info.Username.Name
+
 	var cardList []proto.YubiCardID
 	b.runCmdToJSON(t, &cardList, "yubi", "ls")
 
@@ -46,29 +52,32 @@ func TestYubiSetPIN(t *testing.T) {
 	)
 	require.Error(t, err)
 	require.Equal(t, core.YubiAuthError{Retries: 2}, err)
+	goodPin := proto.YubiPIN("343434")
 
 	var res2 lcl.SetOrGetManagementKeyRes
 	b.runCmdToJSON(t, &res2,
 		"yubi", "set-pin",
 		"--serial", itoa(serial),
 		"--current-pin", "121212",
-		"--new-pin", "343434",
+		"--new-pin", goodPin.String(),
 		"--new-puk", "56565656",
 		"--current-puk", "23232323",
 	)
 	require.False(t, res2.WasMade)
 	require.Equal(t, res.Key, res2.Key)
+	mk := res2.Key
 
 	// check that pin unlock with the wrong key fails
 	err = b.runCmdErr(nil,
 		"yubi", "unlock",
-		"--pin", "343438")
+		"--pin", "343438",
+	)
 	require.Error(t, err)
 	require.Equal(t, core.YubiAuthError{Retries: 2}, err)
 
 	// check that pin unlock with the right key works
 	runPinUnlock := func() {
-		b.runCmd(t, nil, "yubi", "unlock", "--pin", "343434")
+		b.runCmd(t, nil, "yubi", "unlock", "--pin", goodPin.String())
 	}
 	runPinUnlock()
 
@@ -103,7 +112,7 @@ func TestYubiSetPIN(t *testing.T) {
 		"--slot", itoa(slots[2]),
 		"--pq-slot", itoa(slots[3]),
 		"--name", "zoombomb 3.1415+",
-		"--pin", "343434",
+		"--pin", goodPin.String(),
 		"--lock-with-pin",
 	)
 	merklePoke(t)
@@ -131,4 +140,54 @@ func TestYubiSetPIN(t *testing.T) {
 	require.True(t, userIsUnlocked(*au))
 	require.IsType(t, nil, core.StatusToError(au.LockStatus))
 
+	failPinUnlock := func(i int) {
+		err := b.runCmdErr(nil, "yubi", "unlock", "--pin", "898989")
+		require.Error(t, err)
+		require.Equal(t, core.YubiAuthError{Retries: i}, err)
+	}
+
+	breakIt := func() {
+
+		for i := 2; i >= 0; i-- {
+			failPinUnlock(i)
+		}
+		failPinUnlock(0)
+
+		// Should still fail even if we supply the right PIN!
+		err = b.runCmdErr(nil, "yubi", "unlock", "--pin", goodPin.String())
+		require.Error(t, err)
+		require.Equal(t, core.YubiAuthError{Retries: 0}, err)
+
+	}
+
+	breakIt()
+
+	fixIt := func(withKey bool) {
+		args := []string{
+			"yubi", "recover",
+			"--serial", itoa(serial),
+			"--new-pin", goodPin.String(),
+			"--new-puk", "00000000",
+		}
+		if withKey {
+			args = append(args, "--management-key", mk.String())
+		}
+		b.runCmd(t, nil,
+			args...,
+		)
+	}
+
+	fixIt(true)
+	runPinUnlock()
+
+	// Now make it a permanent device, and switch onto that device.
+	stopper := runMerkleActivePoker(t)
+	defer stopper()
+	b.runCmd(t, nil, "key", "dev", "perm", "--name", "device B.2")
+
+	fixIt(false)
+	estr, err := eldest.StringErr()
+	require.NoError(t, err)
+	b.runCmd(t, nil, "key", "switch", "-u", username.String(), "--key-id", estr)
+	runPinUnlock()
 }
