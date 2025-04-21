@@ -1,0 +1,100 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xf2731557a811da5c;
+
+enum KeyDerivationType {
+    // Core types
+    Signing @0;
+    DH @1;
+    SecretBoxKey @2;
+    TreeLocationRF @3;
+    MLKEM @4;
+
+    AppKey @5; // Used for different higher-level applications, like KV Store
+}
+
+enum AppKeyDerivationType {
+    Enum @0;
+    String @1;
+}
+
+enum AppKeyEnum {
+    KVStore @0;
+}
+
+variant KeyDerivation switch (t: KeyDerivationType) @0xd35cdcc95caef674 {
+    case MLKEM @4: Uint; // need 2 32-byte values to get a 64-byte seed
+    default: void;
+}
+
+variant ChainLocationDerivation switch (t : ChainType) @0xe516acf96cf56e58 {
+    default: void;
+}
+
+variant AppKeyDerivation switch (t : AppKeyDerivationType) @0x94318317830b409b {
+    case Enum @0 : AppKeyEnum;
+    case String @1 : Text;
+}
+
+enum KVKeyType {
+    // For KV-Store 
+    MAC @1;
+    Box @2;
+    Commitment @3;
+}
+
+variant KVKeyDerivation switch (t : KVKeyType) @0xdbdf2ba29c0de2cb {
+    default: void;
+}
+
+enum KeyGenus {
+    Device @0;
+    Yubi @1;
+    Backup @2;
+}
+
+struct SharedKeyParcel {
+    box @0 : SharedKeyBox;
+    sender @1 : EntityID;
+    boxId @2 : BoxSetID;
+    tempDHKeySigned @3 : Option(TempDHKeySigned);
+    seedChain @4 : List(SeedChainBox);
+}
+
+struct SeedChainBox {
+    gen  @0 : Generation;
+    role @1 : Role;
+    box  @2 : SecretBox; // SharedKeySeed inside
+}
+
+// An (eid, host, role, gen) quad should be enough to identify any DH key.
+struct SharedKeyBoxTarget {
+    eid @0  : EntityID; // Device key for boxing PUKs; PartyID for boxing PTKs
+    host @1 : Option(HostID); // Can be null if same host as the team or User
+    role @2 : Role; // the key role of the receiver key, relative to owner,host above
+    gen @3  : Generation; // the key generation of the receiver key, relative to owner,host above. Will be 0 for device keys
+}
+
+struct SharedKeyBox {
+    gen  @0 : Generation;
+    role @1 : Role;
+    box  @2 : Box;
+    targ @3 : SharedKeyBoxTarget;
+}
+
+struct SharedKeyBoxSet {
+    id @0 : BoxSetID;
+    boxes @1 : List(SharedKeyBox);
+    tempDHKeySigned @2 : Option(TempDHKeySigned);
+}
+
+struct TeamRemovalKeyBox {
+    box @0 : Box;
+    encKey @1 : RoleAndGen;
+}
+
+struct RoleAndGen {
+    role @0 : Role;
+    gen @1 : Generation;
+}

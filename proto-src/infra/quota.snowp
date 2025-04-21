@@ -1,0 +1,162 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xc7460e36ac558288;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct QuotaConfig {
+    slacks @0 : Slacks;
+    delay @1 : lib.DurationMilli;
+    noPlanMaxTeams @2: Int;
+    noResurrection @3: Bool;
+}
+
+typedef Cents = Uint;
+typedef SignedCents = Int;
+
+typedef StripeProdID = Text; // Stripe product ID (!= our plan ID)
+typedef StripePriceID = Text; // Stripe price ID (!= our price ID)
+typedef StripeSessionID = Text; 
+typedef StripeCustomerID = Text;
+typedef StripeSubscriptionID = Text;
+typedef StripeInvoiceID = Text;
+typedef StripeChargeID = Text;
+typedef StripeEventID = Text;
+
+enum QuotaScope {
+    None @0;
+    Teams @1;
+    VHost @2;
+}
+
+struct Plan {
+    id @0 : lib.PlanID;
+    name @1 : Text;
+    maxSeats @2 : Uint;
+    quota @3 : lib.Size;
+    displayName @4 : Text;
+    stripeProdId @5 : StripeProdID;
+    points @6 : List(Text);
+    prices @7 : List(PlanPrice);
+    promoted @8 : Bool;
+    scope @9 : QuotaScope;
+    maxVhosts @10 : Uint;
+    sso @11 : Bool;
+}
+
+struct PaymentInterval {
+    interval @0 : Interval;
+    count @1 : Uint;
+}
+
+struct PlanPrice {
+    id @0 : lib.PriceID;
+    stripePriceId @1 : StripePriceID;
+    cents @2 : Cents;
+    pi @3 : PaymentInterval;
+    promoted @4 : Bool;
+    pri @5 : Int; // set a priority for sort order; will typically equal to cents;
+}
+
+enum PlanStatus {
+    Active @0;
+    Overtime @1;
+    Expired @2;
+}
+
+struct UserPlan {
+    plan @0 : Plan;
+    timeLeft @1 : lib.DurationSecs;
+    status @2 : PlanStatus;
+    pendingCancel @3 : Bool;
+    price @4 : lib.PriceID;
+    paidThrough @5 : lib.Time; // 0 if we are pending a cancel
+    subscriptionId @6 : StripeSubscriptionID;
+}
+
+struct StripeInvoice {
+    id @0 : StripeInvoiceID;
+    amt @1 : Cents;
+    time @2 : lib.Time;
+    url @3 : lib.URLString;
+    desc @4 : Text;
+}
+
+enum CannedVHostStage {
+    None @0;
+    Complete @1;
+    Aborted @2;
+    Stage1 @3;
+}
+
+enum AutocertStatus {
+    None @0;
+    Staged @1;
+    Granted @2;
+    Aborted @3;
+}
+
+enum Interval {
+    Day @0;
+    Month @1;
+    Year @2;
+}
+
+struct MakePlanOpts {
+}
+
+struct Slacks {
+    floatingTeam @0 : lib.Size;         // unassociated team gets a very small amount of slack
+    noPlanUser @1 : lib.Size;           // A user without a plan get a slightly larger amount of slack
+    planUser @2 : lib.Size;             // A user with a plan gets a larger amount of slack
+    paidThrough @3 : lib.DurationSecs;  // After a plan runs out, some extra slack
+}
+
+
+protocol Quota errors lib.Status @0xfa82ee9c {
+
+    poke @0 () : QuotaPokeArg;
+
+    testSetConfig @1 (
+        config @0 : QuotaConfig
+    );
+
+    testUnsetConfig @2 ();
+
+    testBumpUsage @3 (
+        hid @0 : lib.HostID,
+        pid @1 : lib.PartyID,
+        amt @2 : lib.Size
+    );
+
+    makePlan @4 (
+        plan @0 : Plan,
+        opts @1 : MakePlanOpts
+    ) -> Plan;
+
+    setPlan @5 (
+        fqu @0 : lib.FQUser,
+        plan @1 : lib.PlanID,
+        price @2 : lib.PriceID,
+        replace @3 : Bool,
+        validFor @4 : lib.DurationSecs,
+        stripeSubId @5 : StripeSubscriptionID
+    ) -> lib.CancelID;
+
+    cancelPlan @6 (
+        fqu @0 : lib.FQUser
+    ) -> lib.CancelID;
+
+    assignQuotaMaster @7 (
+        fqu @0 : lib.FQUser,
+        team @1 : lib.TeamID
+    );
+
+    unassignQuotaMaster @8 (
+        fqu @0 : lib.FQUser,
+        team @1 : lib.TeamID
+    );
+
+
+}

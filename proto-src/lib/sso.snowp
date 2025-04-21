@@ -1,0 +1,90 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xfb552efa61d59224;
+
+typedef SSOClientID = Text;
+
+struct SSOLoginRes {
+    username @0 : NameUtf8;
+    email @1 : Email;
+    issuer @2 : URLString;
+}
+
+struct OAuth2Config {
+    id           @0 : SSOConfigID;
+    configURI    @1 : URLString;          // E.g.: https://my.okta.com/application/o/bozos/.well-known/openid-configuration
+    clientID     @2 : OAuth2ClientID;     // E.g.: x2dp9lPJoWQ4tuxX4nbtkcDepUtIW2GLZ0jRyoP2
+    clientSecret @3 : OAuth2ClientSecret; // Not needed for PKCE but admin can configure
+    redirectURI  @4 : URLString;          // E.g.: https://x.cloud.k3n.gg/oauth2/callback (hosted by FOKS server)
+}
+
+enum SSOProtocolType {
+    None @0;
+    Oauth2 @1;
+    SAML @2;
+}
+
+struct SSOConfig {
+    active @0 : SSOProtocolType;
+    oauth2 @1 : Option(OAuth2Config);
+}
+
+struct OAuth2TokenSet @0x9c72432bd3f5bfc8 {
+    accessToken @0 : OAuth2AccessToken;
+    idToken     @1 : OAuth2IDToken;
+    expires     @2 : Time; 
+    username    @3 : NameUtf8;
+}
+
+typedef OAuth2Random = Blob(16);
+typedef OAuth2Nonce = Text;
+typedef OAuth2PKCEChallengeCode = Text;
+typedef OAuth2PKCEVerifier = Text;
+typedef OAuth2Code = Text;
+typedef OAuth2AccessToken = Text;
+typedef OAuth2RefreshToken = Text;
+typedef OAuth2IDToken = Text;
+typedef OAuth2ClientID = Text;
+typedef OAuth2ClientSecret = Text;
+typedef OAuth2Subject = Text;
+
+struct OAuth2Binding @0xa785bb21f4d713b6 {
+    fqu @0 : FQUser;
+    root @1 : TreeRoot;
+    rand @2 : OAuth2Random;
+}
+
+struct OAuth2Session {
+    id @0 : OAuth2SessionID;
+    binding @1 : OAuth2Binding;
+    nonce @2 : OAuth2Nonce; // Prefixed Hash of Binding
+    challengeCode @3 : OAuth2PKCEChallengeCode; // SHA256(v) -- also called "challenge"
+    verifier @4 : OAuth2PKCEVerifier; // random v
+    authURI @5 : URLString;
+    idtok @6 : Option(OAuth2ParsedIDToken);
+}
+
+struct OAuth2ParsedIDToken {
+    raw @0 : OAuth2IDToken;
+    issuer @1 : URLString;
+    username @2 : NameUtf8;
+    email @3 : Email;
+    issued @4 : Time;
+    expires @5 : Time;
+    displayName @6 : NameUtf8;
+    subject @7 : OAuth2Subject;
+}
+
+struct OAuth2IDTokenBindingPayload {
+    idToken @0 : OAuth2IDToken;
+    binding @1 : OAuth2Binding;
+}
+
+typedef OAuth2IDTokenBindingBlob @0x81c5c0695efde1c9 = Future(OAuth2IDTokenBindingPayload);
+
+struct OAuth2IDTokenBinding {
+    inner @0 : OAuth2IDTokenBindingBlob;
+    sig @1 : Signature;
+    key @2 : EntityID; // The user device key that signed the binding
+}

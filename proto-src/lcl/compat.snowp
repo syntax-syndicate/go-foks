@@ -1,0 +1,22 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xd1b88797a6fbe065;
+
+enum HeaderVersion {
+    V1 @1;
+}
+
+variant Header switch (v : HeaderVersion) {
+    case V1 @1: HeaderV1;
+}
+
+struct SemVer {
+    major @0 : Uint;
+    minor @1 : Uint;
+    patch @2 : Uint;
+}
+
+struct HeaderV1 {
+    semver @0 : SemVer;
+}

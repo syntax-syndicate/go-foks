@@ -1,0 +1,68 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x98a7ed97cf9c6ce7;
+
+struct UserInfo @0xb9d0f7ccec149b5b {
+    fqu @0 : FQUser;
+    username @1 : NameBundle;
+    hostAddr @2: TCPAddr; // has hostname and port
+    active @3 : Bool;
+    yubiInfo @4 : Option(YubiKeyInfoHybrid);
+    role @5 : Role;
+    keyGenus @6 : KeyGenus; // YubiInfo non-nil implies value Yubi here (inverse not always true)
+    viewToken @7 : Option(ViewToken);
+    key @8 : EntityID; // Verify key used here (can be device, yubi, or backup)
+    devname @9 : DeviceName; // set only in some circumstances (see AllUserLoad w/r/t BackupKeys)
+}
+
+struct UserContext {
+    info @0 : UserInfo;
+    key @1 : EntityID; // Can be a yubikey ID or a device ID
+    puks @2 : List(SharedKey);
+    mtime @3 : Time;
+    devname @4 : DeviceName;
+    lockStatus @5 : Status;
+    networkStatus @6 : Status;
+}
+
+struct RegServerConfig {
+    sso @0 : Option(SSOConfig);
+    typ @1 : HostType; 
+}
+
+typedef Email = Text;
+
+struct LookupUserRes {
+    fqu @0 : lib.FQUser;
+    username @1 : lib.Name;
+    usernameUtf8 @2 : lib.NameUtf8;
+    role @3 : lib.Role;
+    yubiPQHint @4 : Option(lib.YubiSlotAndPQKeyID);
+}
+
+enum UserLockState {
+    Unset @0;
+    Error @1;
+    Unlocked @2;
+    Passphrase @3;
+    Yubi @4;
+    Keychain @5;
+    SSO @6;
+}
+
+struct UserInfoAndStatus {
+    info @0 : UserInfo;
+    lockStatus @1 : Status;
+    networkStatus @2 : Status;
+}
+
+struct LocalUserIndexAtHost @0xef52df3bdf52d9d1 {
+    uid @0 : lib.UID;
+    keyid @1 : lib.EntityID;
+}
+
+struct LocalUserIndex @0xc2b545ad04c73d1b {
+    host @0 : lib.HostID;
+    rest @1 : LocalUserIndexAtHost;
+}

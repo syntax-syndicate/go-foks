@@ -1,0 +1,18 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xfe52cbfc9db195b7;
+
+enum HeaderVersion {
+    V1 @1;
+}
+
+variant Header switch (v : HeaderVersion) {
+    case V1 @1: HeaderV1;
+}
+
+typedef CompatibilityVersion = Uint;
+
+struct HeaderV1 {
+    vers @0 : CompatibilityVersion;
+}

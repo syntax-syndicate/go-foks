@@ -1,0 +1,39 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x8eb570fa4babbf70;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct ProbeRes @0xe5d58d6f85e92a64 {
+    merkleRoot @0 : lib.SignedMerkleRoot;
+    zone @1 : lib.SignedPublicZone;
+    hostchain @2 : List(lib.HostchainLinkOuter);
+}
+
+protocol Probe 
+    errors lib.Status 
+    argHeader lib.Header 
+    resHeader lib.Header @0xc5884ff6 {
+
+    // A probe is something you use to discover how to get to a Merkle Query Server.
+    // You can take on faith that hostID and MetadataSigner are correct, but we'll
+    // eventually corroborate this as we play back the hostchain. Then, we'll persist
+    // the mapping of DNS name -> hostID, can future useages of this server will no
+    // longer be TOFU. That is, if we don't trust the x509 Root CAs, or the x509 
+    // hierarchy.
+    //
+    // Call with the last seqno for the hostchain that we had in our local cache.
+    // This will be 0 on first contact.
+    //
+    // We must include hostname for Vhosts, since we can have many probe DNS
+    // names mapping to the same IP address and therefore to the same probe service.
+    // We can also use the HostID instead of the hostname to resolve the 
+    // virtual host. This currently happens in test, but there could be a use
+    // in the future.
+    probe @1 (
+        hostname @0 : lib.Hostname,
+        hostchainLastSeqno @1 : lib.Seqno,
+        hostID @2 : Option(lib.HostID)
+    ) -> ProbeRes;
+}

@@ -1,0 +1,428 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x803d29a43279af2a;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef TeamVOBearerToken = Blob(16);
+typedef TeamBearerToken = Blob(16);
+
+struct SharedKeySig {
+    sig @0 : lib.Signature;
+    gen @1 : lib.Generation;
+    role @2 : lib.Role;
+}
+
+
+struct TeamVOBearerTokenReq {
+    team @0 : lib.FQTeamIDOrName;
+    member @1 : lib.FQParty;
+    srcRole @2 : lib.Role; // Source role of the member's PUK or PTK.
+    gen @3 : lib.Generation; // Key gen for the member (not team)
+}
+
+struct TeamVOBearerTokenChallengePayload @0x81180183e3a318a9 {
+    req @0 : TeamVOBearerTokenReq;
+    tm @1  : lib.Time;
+    tok @2 : TeamVOBearerToken;
+    id @3  : lib.HMACKeyID;
+}
+
+struct TeamVOBearerTokenChallenge @0x96861830ffa96bff {
+    payload @0 : TeamVOBearerTokenChallengePayload;
+    mac @1 : lib.HMAC;
+}
+
+struct ActivatedVOBearerToken {
+    tok @0 : TeamVOBearerToken;
+    id @1 : lib.TeamID; // If the bearer token specified a name, we now can get the ID
+}
+
+variant TokenVariant switch (t : TokenType) {
+    case TeamVOBearer @0 : TeamVOBearerToken;
+    case Permission @1 : lib.PermissionToken;
+    case LocalParentTeam @2 : TeamVOBearerToken;
+    default: void;
+}
+
+typedef TeamRemovalKey @0xb058740fe7e9fdb5 = Blob(32);
+
+struct TeamRemovalKeyBoxPayload @0xeeae1230be48267f {
+    key @0 : TeamRemovalKey;
+    md @1 : TeamRemovalKeyMetadata;
+}
+
+struct TeamRemovalKeyMetadata {
+    tm @0 : lib.FQTeam;
+    member @1 : lib.FQParty;
+    srcRole @2 : lib.Role;
+    dst @3 : lib.RoleAndSeqno;
+}
+
+struct TeamRemovalMACPayload @0x8d006be42c05ec34 {
+    team @0 : lib.FQTeam;
+    member @1 : lib.FQParty;
+    srcRole @2 : lib.Role;
+    admin @3 : lib.FQParty;
+    root @4 : lib.TreeRoot;
+    tm @5 : lib.Time;
+}
+
+struct TeamRemovalBoxData {
+    comm @0 : lib.KeyCommitment;
+    team @1 : lib.TeamRemovalKeyBox;
+    member @2 : lib.TeamRemovalKeyBox;
+    md @3 : TeamRemovalKeyMetadata;
+}
+
+struct TeamRemoval {
+    mac @0 : lib.HMAC;
+    payload @1 : TeamRemovalMACPayload;
+}
+
+struct TeamChain {
+    links @0 : List(lib.LinkOuter);
+    locations @1 : List(lib.TreeLocation);
+    teamnames @2 : List(NameCommitmentAndKey);
+    merkle @3 : lib.MerklePathsCompressed;
+    teamnameUtf8 @4 : lib.NameUtf8;
+    numTeamnameLinks @5 : Uint; 
+    boxes @6: List(lib.SharedKeyParcel);
+    removalKey @7 : Option(lib.TeamRemovalKeyBox);
+    remoteViewTokens @8 : List(lib.TeamRemoteMemberViewTokenInner); 
+    hepks @9 : lib.HEPKSet;
+}
+
+struct TeamRemoteViewTokenSet {
+    tokens @0 : List(lib.TeamRemoteMemberViewTokenInner);
+}
+
+enum TokenType {
+    None @0;
+    TeamVOBearer @1;    // TeamVOBearerToken -- anyone on the team can make it
+    Permission @2;      // PermissionToken -- team A gives to team B to allow team B to load team A in the future
+    LocalParentTeam @3; // TeamVOBearerToken via local parent team
+}
+
+struct TeamRemovalAndKeyBox {
+    keyBox @0 : lib.TeamRemovalKeyBox;
+    removal @1 : TeamRemoval;
+}
+
+struct TeamRemovalAndComm {
+    rm @0 : TeamRemoval;
+    comm @1 : lib.KeyCommitment;
+}
+
+struct OffchainBoxData {
+    ptkBoxes @0 : lib.SharedKeyBoxSet;
+    seedChain @1 : List(lib.SeedChainBox);
+    remoteMemberViewTokens @2 : List(lib.TeamRemoteMemberViewToken);
+    removalKeys @3 : List(TeamRemovalBoxData); // for additions
+    removals @4 : List(TeamRemovalAndComm);    // for removals
+    hepks @5 : lib.HEPKSet;
+
+    // If we're rotating a team, we might be signing with the old generation
+    // of a PTK/PUK, but while migrating to a new one. In that case, the boxes
+    // uploaded will be encrypted with a sender that's the new generation.
+    // Mark that here.
+    newKeyOnRotate @6 : lib.EntityID;
+}
+
+protocol TeamLoader errors lib.Status @0xf9128579 {
+
+    getTeamVOBearerTokenChallenge @0 (
+        req @0 : TeamVOBearerTokenReq
+    ) -> TeamVOBearerTokenChallenge;
+
+    activateTeamVOBearerToken @1 (
+        ch @0 : TeamVOBearerTokenChallenge,
+        sig @1 : lib.Signature
+    ) -> ActivatedVOBearerToken;
+
+    checkTeamVOBearerToken @2 (
+        host @0 : lib.HostID,
+        tok @1 : TeamVOBearerToken
+    ) -> lib.TeamID;
+
+    loadTeamChain @3 (
+        team @0 : lib.FQTeam,
+        tok @1 : TokenVariant, // implies the member who is loading
+        start @2 : lib.Seqno,
+        havePtkGens @3 : List(lib.SharedKeyGen), // Sorted from low to high role, which ones we currently have
+        name @4 : Option(NameSeqnoPair),
+        loadRemovalKey @5 : Bool,
+        loadRemoteViewTokens @6 : Bool
+    ) -> TeamChain;
+
+    loadTeamMembershipChain @4 (
+        team @0 : lib.FQTeam,
+        tok @1 : TeamVOBearerToken, // implies the member who is loading
+        start @2 : lib.Seqno
+    ) -> GenericChain;
+
+    loadRemovalForMember @5 (
+        team @0 : lib.FQTeam,
+        comm @1 : lib.KeyCommitment
+    ) -> TeamRemovalAndKeyBox;
+
+    loadTeamRemoteViewTokens @6 (
+        team @0 : lib.FQTeam,
+        tok @1 : TeamVOBearerToken,
+        members @2 : List(lib.FQParty)
+    ) -> TeamRemoteViewTokenSet;
+}
+
+protocol TeamMember errors lib.Status @0xbda3b9d3 {
+
+    acceptInviteLocal @0 (
+        i @0 : lib.TeamInvite,
+        srcRole @1 : lib.Role,
+        tok @2 : Option(TeamBearerToken), // only needed if accepting for a team
+        teamMembershipLink @3 : Option(PostGenericLinkArg) // account for accepted invite
+    ) -> lib.TeamRSVPLocal;
+
+    grantRemoteViewPermissionForTeam @1 (
+        p @0 : GrantRemoteViewPermissionPayload,
+        sig @1 : SharedKeySig
+    ) -> lib.PermissionToken;
+
+    grantLocalViewPermissionForTeam @2 (
+        p @0 : GrantLocalViewPermissionPayload,
+        sig @1 : SharedKeySig
+    ) -> lib.PermissionToken;
+}
+
+struct LocalPartyRole {
+    party @0 : lib.PartyID;
+    role @1 : lib.Role;
+}
+
+struct EditTeamRes {
+    localInvitees @0 : List(LocalPartyRole);
+}
+
+struct TeamBearerTokenChallengePayload @0xa85de1ca0ab0c9a5 {
+    user @0 : lib.FQUser;
+    team @1 : lib.TeamID;
+    role @2 : lib.Role;
+    gen @3 : lib.Generation;
+    tok @4 : TeamBearerToken;
+    tm @5 : lib.Time;
+}
+
+typedef TeamBearerTokenChallengeBlob @0xcd0d4cbadda50eef = Future(TeamBearerTokenChallengePayload);
+
+// Something that can be pasted into a whatsapp or signal group, allowing
+// members in the group to issue a joinreq.  A teamcert has the team's
+// most recent keys, and can be exchanged before a user can actually load
+// a team. The name is signed into the cert for informational purposes,
+// so that the accepting user can see what they have accepted.
+struct TeamCertV1Payload @0xf88913d42ea72d2a {
+    team @0 : lib.FQTeam;
+    ptk @1  : lib.SharedKey;
+    tm @2   : lib.Time;
+    hepk @3 : lib.HEPK;
+    name @4 : lib.NameUtf8; // this field added later, so might not be in earlier certs
+}
+
+enum TeamCertVersion {
+    V1 @1;
+}
+
+typedef TeamCertV1Blob @0xa8382502cf0873b4 = Future(TeamCertV1Payload);
+
+struct TeamCertV1Signed @0xd7e2d164a441663b {
+    payload @0 : TeamCertV1Blob;
+    // Two signatures -- one with the original PTK and one with the current
+    // Unless it's the first gen, in which case, only one sig
+    signatures @1 : List(lib.Signature); 
+}
+
+variant TeamCert switch (v : TeamCertVersion) @0xbfde7f0ac7a3b707 {
+    case V1 @0 : TeamCertV1Signed;
+}
+
+struct TeamCertAndMetadata {
+    cert @0 : TeamCert;
+    tir @1 : lib.RationalRange; // Unsigned, server-supplied update-to-date Team Index Range
+}
+
+typedef TeamCertHash = lib.StdHash;
+
+struct TeamRemoteJoinReqVisibleData {
+    tir @0 : Option(lib.RationalRange); // the team index range of the joiner, if a team
+}
+
+// The remote join protocol doesn't use much crypto to make for small messages,
+// that might be pasted into a whatsapp group, let's say.
+struct TeamRemoteJoinReq {
+    hepkFp @0 : lib.HEPKFingerprint; // So the receiver knows which team this is for (can index it)
+    box @1 : lib.Box; // Box of a TeamRemoteJoinReqPayload, encrypted for per-team-key
+    vd @2 : TeamRemoteJoinReqVisibleData; // data in the box that also the server can see (receipient should check)
+}
+
+struct InboxPagination {
+    start @0 : lib.Time;
+    end @1 : lib.Time;
+    limit @2 : Uint;
+}
+
+enum JoinreqState {
+    Pending @0;
+    Approved @1;
+    Rejected @2;
+    Withdrawn @3;
+}
+
+struct TeamRawInboxRowLocal {
+    tok @0 : lib.TeamRSVPLocal;
+    joiner @1 : lib.PartyID;
+    srcRole @2 : lib.Role;
+    perm @3 : lib.PermissionToken;
+}
+
+struct TeamRawInboxRowRemote {
+    tok @0 : lib.TeamRSVPRemote;
+    req @1 : TeamRemoteJoinReq;
+}
+
+variant TeamRawInboxRowVar switch (t : TeamJoinReqType) {
+    case Local @1 : TeamRawInboxRowLocal;
+    case Remote @2 : TeamRawInboxRowRemote;
+}
+
+struct TeamRawInboxRow {
+    time @0 : lib.Time;
+    state @1 : JoinreqState;
+    row @2 : TeamRawInboxRowVar;
+}
+
+enum TeamJoinReqType {
+    Local @1;
+    Remote @2;
+}
+
+struct TeamRawInbox {
+    rows @0 : List(TeamRawInboxRow);
+}
+
+struct TeamRemoteJoinReqPayload @0xae6970de2a147061 {
+    joiner @0 : lib.FQParty; // Can be a user or a team (i.e., a "party")
+    tok @1 : lib.PermissionToken; 
+    tm @2 : lib.Time; // time when the join req is generated
+    srcRole @3 : lib.Role; // the source role of the joiner
+    vd @4 : TeamRemoteJoinReqVisibleData; // Data the server can see
+}
+
+struct TeamVOBearerTokenReqAndRole {
+    req @0 : TeamVOBearerTokenReq;
+    role @1 : lib.Role;
+}
+
+// TeamAdmin protocol happens on the same machine that a user is logged into.
+// So we use the same auth mechanism as we do for the User protocol.
+protocol TeamAdmin errors lib.Status @0xdbe1ddbe {
+
+    reserveTeamname @0 (
+        n @0 : lib.Name
+    ) -> ReserveNameRes;
+
+    createTeam @1 (
+        nameUtf8 @0 : lib.NameUtf8,
+        teamnameCommitmentKey @1 : lib.RandomCommitmentKey,
+        subchainTreeLocationSeed @2 : lib.TreeLocation,
+        rnr @3 : ReserveNameRes,
+        eta @4 : EditTeamArg,
+        teamMembershipLink @5 : PostGenericLinkArg
+    );
+
+    // Note we check the signature on the included link and require it
+    // is by one of the team admins. But in addition, we check that either
+    // the logged-in user is the signer (in which case tok is nil), 
+    // or that the tok is provided and is a legitimate bearer token
+    // for the team. This latter case comes up in a team is working
+    // on behalf of another team. As part of this edit, we can also
+    // wind up inserting local view permissions for users. If the host
+    // is set in open viewership for users (or teams), we still insert view
+    // permission tokens for the parties, in case the host changes its policy
+    // in the future.
+    editTeam @2 (
+        link @0 : lib.LinkOuter,
+        nextTreeLocation @1 : lib.TreeLocation,
+        obd @2 : OffchainBoxData,
+        tok @3 : Option(TeamBearerToken),
+        insLocalPermsFor @4 : List(lib.PartyID) 
+    ) -> EditTeamRes;
+
+    makeInertTeamBearerToken @3 (
+        team @0 : lib.TeamID,
+        role @1 : lib.Role,
+        gen @2 : lib.Generation
+    ) -> TeamBearerToken;
+
+    activateTeamBearerToken @4 (
+        bl @0 : TeamBearerTokenChallengeBlob,
+        sig @1 : lib.Signature
+    );
+
+    checkTeamBearerToken @5 (
+        tok @0 : TeamBearerToken
+    ) -> lib.TeamID;
+
+    putTeamCert @6 (
+        tok @0 : TeamBearerToken,
+        cert @1 : TeamCert
+    );
+
+    // Returns certs that are signed with the current Admin PTK generation, though previous
+    // generations might still be valid.
+    getCurrentTeamCerts @7 (
+        tok @0 : TeamBearerToken
+    ) -> List(TeamCert);
+
+    loadTeamRemoteJoinReq @8 (
+        tok @0 : TeamBearerToken,
+        jrt @1 : lib.TeamRSVPRemote 
+    ) -> TeamRemoteJoinReq;
+
+    postTeamMembershipLink @9 (
+        tok @0 : TeamBearerToken,
+        link @1 : PostGenericLinkArg
+    );
+
+    loadRemovalKeyBoxForTeamAdmin @10 (
+        tok @0 : TeamBearerToken,
+        member @1 : lib.FQParty,
+        SrcRole @2 : lib.Role
+    ) -> lib.TeamRemovalKeyBox;
+
+    postTeamRemoval @11 (
+        tok @0 : TeamBearerToken,
+        rm @1 : TeamRemovalAndComm
+    );
+
+    loadTeamRawInbox @12 (
+        tok @0 : TeamBearerToken,
+        pagination @1 : Option(InboxPagination)
+    ) -> TeamRawInbox;
+
+    rejectJoinReq @13 (
+        tok @0 : TeamBearerToken,
+        req @1 : lib.TeamRSVP
+    );
+}
+
+protocol TeamGuest errors lib.Status @0xf6d7585c {
+
+    lookupTeamCertByHash @0 (
+        i @0 : lib.TeamInvite
+    ) -> TeamCertAndMetadata;
+
+    acceptInviteRemote @1 (
+        i @0 : lib.TeamInvite,
+        jr @1 : TeamRemoteJoinReq
+    ) -> lib.TeamRSVPRemote;
+
+}

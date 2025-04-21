@@ -1,0 +1,16 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xad7b9f25b502fbec;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+protocol Util 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0x8ce48129 {
+
+    triggerBgClkr @1 ();
+    triggerBgUserRefresh @2 ();
+
+}

@@ -1,0 +1,208 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x878d9c53132b6a63;
+
+typedef KVShardID = Uint;
+typedef FileKeySeed @0xb6487f843b10cfce = SecretSeed32;    // a per-file key seed
+typedef DirKeySeed @0x8aece6566b244356  = SecretSeed32;    // a per-directory key seed
+
+typedef ShortPartyID = Blob(17); // First 17 bytes of a PartyID, shortened to save space in the DB
+
+typedef KVMacKey = HMACKey;                       // derived from one of the two seeds above, for HMAC
+typedef KVBoxKey = SecretBoxKey;                  // derived from one fo the two seeds above, for SecretBox
+
+typedef KVNamePlaintext @0x9f9fe83fe9f0d475 = Text;
+
+struct KVNameNonceInput @0x8f02a15745471874 {
+    parentDir @0 : DirID;
+    name @1 : KVNamePlaintext;
+}
+
+enum KVNodeType {
+    None @0;
+    Dir @1;
+    File @2;
+    SmallFile @3;
+    Symlink @4;
+}
+
+typedef KVVersion = Uint;
+
+struct PathVersionVector {
+    root @0 : KVVersion;
+    path @1 : List(DirVersion);
+}
+
+struct DirVersion {
+    id @0 : DirID;
+    vers @1 : KVVersion;
+    de @2 : List(DirentVersion);
+}
+
+typedef FileID = Blob(16);
+typedef SmallFileID = Blob(16);
+typedef SymlinkID = Blob(16);
+typedef DirID = Blob(16);
+typedef DirentID = Blob(16);
+
+struct DirentVersion {
+    id @0 : DirentID;
+    vers @1 : KVVersion;
+}
+
+struct RolePair {
+    read @0 : Role;
+    write @1 : Role;
+}
+
+struct RolePairOpt {
+    read @0 : Option(Role);
+    write @1 : Option(Role);
+}
+
+typedef LocalFSPath = Text;
+
+struct KVDirent {
+    parentDir @0 : DirID;
+    id @1 : DirentID;
+    value @2 : KVNodeID;
+    version @3 : KVVersion; // must be monotonic or else put will fail due to race
+    dirVersion @4 : KVVersion;
+    writeRole @5 : Role;
+    nameMac @6 : HMAC;
+    nameBox @7 : SecretBox;
+    dirStatus @8: KVDirStatus;
+    bindingMac @9 : HMAC;
+    ctime @10 : TimeMicro;
+}
+
+struct SmallFileBox {
+    rg @0 : RoleAndGen;             // Role and generation of the PTK that can decrypt this file
+    dataBox @1 : NaclCiphertext;    // Direct encryption of file
+}
+
+typedef KVNodeID = Blob(17);
+
+enum KVDirStatus {
+    Active @0;
+    Encrypting @1;
+    Dead @2;
+}
+
+typedef KVPath @0xc05a71f8cf1dfa5c = Text;
+
+enum KVListPaginationType {
+    None @0;
+    MAC @1;
+    Time @2;
+}
+
+struct SeedBox {
+    rg @0 : RoleAndGen;
+    box @1 : SecretBox;
+}
+
+variant KVListPagination switch (t : KVListPaginationType) {
+    case None: void;
+    case MAC @1: HMAC;
+    case Time @2: TimeMicro;
+}
+
+typedef ChunkPlaintext @0x8d2e290071d39250 = Blob;
+typedef Size = Uint;
+typedef KVPathComponent = Text;
+typedef KVNameNonce = NaclNonce;
+typedef KVUploadID = Blob(16);
+typedef Offset = Uint;
+
+struct KVUsageStats {
+    num @0 : Uint;
+    sum @1 : Size;
+}
+
+struct KVUsageStatsChunked {
+    base @0 : KVUsageStats;
+    numChunks @1 : Uint;
+}
+
+struct KVUsage {
+    small @0 : KVUsageStats;
+    large @1 : KVUsageStatsChunked;
+}
+
+struct SeedBoxExternalNonce {
+    rg @0 : RoleAndGen;
+    ctext @1 : NaclCiphertext;
+}
+
+struct KVDir {
+    id @0 : DirID;
+    version @1 : KVVersion;
+    box @2 : SeedBoxExternalNonce; // Nonce is DirID (to link seedBox to dirID)
+    writeRole @3 : Role;
+    status @4 : KVDirStatus;
+}
+
+struct KVRoot {
+    root @0 : DirID;
+    vers @1 : KVVersion; // >= 1
+    rg @2 : RoleAndGen; // How the bindingMac was generated
+    bindingMac @3 : HMAC;
+}
+
+struct LargeFileMetadata {
+    rg @0 : RoleAndGen;             // Role and generation of the PTK that can decrypt this file
+    keySeed @1 : SecretBox;         // FileKeySeed for the file
+    vers @2 : KVVersion;            // Version of the metadata (changes when file is rekeyed)
+
+    // App-specific Custom metadata for the file. Keyed with the same key
+    // as the file data. Payload is type CustomMetadataPlaintext, padded like file data.
+    customMetadata @3 : Option(SecretBox); 
+}
+
+struct UploadFinal {
+    sz @0 : Size;
+    chunkSum @1 : StdHash;
+}
+
+struct UploadChunk {
+    data @0 : NaclCiphertext;
+    offset @1 : Offset;
+    final @2 : Option(UploadFinal);
+}
+
+struct KVExtendedDirent {
+    pos @0 : Uint;
+    sfb @1 : SmallFileBox;
+}
+
+struct KVDirentIDPair {
+    parentDirID @0 : DirID;
+    direntID @1 : DirentID;
+}
+
+struct KVDirPair {
+    active @0 : KVDir;
+    encrypting @1 : Option(KVDir);
+}
+
+typedef Chunk = Blob;
+
+struct KVDirentBindingPayload @0x9cc37c8363dc39fa {
+    parentDir @0 : DirID;
+    id @1 : DirentID;
+    value @2 : KVNodeID;
+    version @3 : KVVersion;
+    dirVersion @4 : KVVersion;
+    writeRole @5 : Role;
+    nameMac @6 : HMAC;
+    nameBox @7 : SecretBox;
+}
+
+struct KVRootBindingPayload @0xcfacdd4eab213a36 {
+    party @0 : FQParty;
+    rg @1 : RoleAndGen;
+    root @2 : DirID;
+    vers @3 : KVVersion;
+}

@@ -1,0 +1,562 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x99480a7ce59af1a5;
+
+// To save space, we're not wrapping this object in any variants or structs or the like.
+// Instead, it's just going to be {0x1,0x2,0x3,0x4} followed by the 32 bytes of the public key.
+// These are things that are going to be copied around in chat, tweets, etc, so every byte counts.
+// We do have the extra leading byte so we can change our minds on this later.
+//
+// As for the leading byte:
+//  0x1 = User
+//  0x3 = Host
+//  0x3 = Team
+//  0x4 = Device
+// 
+// We'll reserve bytes 0x4-0x0f for other entity types, and maybe 0x10+ for new versions of this
+// scheme. I think this is better plan than using a variant, which has a 5-byte overhead, or
+// even something like a struct that has an additional 1-byte overhead.
+//
+// An entity ID is something like a Uid, a TeamID, a HostID, etc, anything that can be
+// identified by its eldest shared public key.
+typedef EntityID = Blob;
+
+// The 2 fixed varieties of entity IDs.
+typedef EntityID33 = Blob(33);
+typedef EntityID34 = Blob(34);
+
+typedef UID = EntityID33;                // Leading byte 0x1 -- 33 bytes (EdDSA)
+typedef TeamID = EntityID33;             // Leading byte 0x3 -- 33 Bytes (EdDSA)
+typedef DeviceID = EntityID;             // Leading byte 0x4 -- 33 bytes (EdDSA)
+typedef X509CertID = EntityID;           // Leading byte 0x5 -- 33 bytes (EdDSA) -- for X509 certs (not CAs)
+typedef LocationVRFID = EntityID;        // Leading byte 0x6 -- 33 bytes (EdDSA)
+typedef ServiceID = EntityID;            // Leading byte 0x7 -- 33 bytes (EdDSA)
+typedef YubiID = EntityID;               // Leading byte 0x8 -- 34 bytes (ECDSA p256)
+typedef NameEntityID = EntityID33;       // Leading byte 0x9 -- 33 bytes (Hash of username)
+typedef HostMerkleSignerID = EntityID;   // Leading byte 0xa -- 33 bytes (EdDSA)
+typedef HostTLSCAID = EntityID33;        // Leading byte 0xb -- 33 bytes (EdDSA) -- only for CAs
+typedef HostMetadataSignerID = EntityID; // Leading byte 0xc -- 33 Bytes (EdDSA)
+typedef SubkeyID = EntityID;             // Leading byte 0xd -- 33 Bytes (EdDSA)
+typedef PUKVerifyID = EntityID;          // Leading byte 0xe -- 33 Bytes (EdDSA)
+typedef PTKVerifyID = EntityID;          // Leading byte 0xf -- 33 Bytes (EdDSA)
+typedef BackupKeyID = EntityID;          // Leading byte 0x10 -- 33 Bytes (EdDSA)
+typedef PassphraseKeyID = EntityID;      // Leading byte 0x11 -- 33 Bytes (EdDSA, derived from passphrase)
+typedef PKIXCertID = EntityID;           // Leading byte 0x12 -- 33 Bytes (ECDSA or RSA) - Unspecified PKIX key from crypto.Public
+
+// HostID has a type ID since sometimes we store it directly as a value
+// in local client DBs. (See Probe::checkPin).
+typedef HostID @0xa2f3bf71638e062d = EntityID33; // Leading byte 0x2 -- 33 bytes (EdDSA)
+
+typedef FixedEntityID = EntityID34; // Can hold any EntityID, with padding on the last byte. Good for map keys
+
+typedef PartyID = EntityID; // A party is a User or a Team
+typedef FixedPartyID = EntityID33;
+typedef EntityIDString = Text;
+
+enum EntityType {
+    User @1;
+    Host @2;
+    Team @3;
+    Device @4;
+    X509Cert @5;
+    LocationVRF @6;
+    Service @7;
+    Yubi @8;
+    Name @9;
+    HostMerkleSigner @10;
+    HostTLSCA @11;
+    HostMetadataSigner @12;
+    Subkey @13;
+    PUKVerify @14;
+    PTKVerify @15;
+    BackupKey @16;
+    PassphraseKey @17;
+    PKIXCert @18;
+}
+
+enum DHType {
+    Curve25519 @1;
+    P256 @2;
+}
+typedef DHSharedKey = Blob;
+
+variant DHPublicKey switch (t : DHType) {
+    case Curve25519 @0 : Curve25519PublicKey;
+    case P256 @1 : ECDSACompressedPublicKey;
+}
+
+// ID16 are short (16-byte) identifiers that are random, not the output
+// of the hash of a public key. They have a one-byte prefix, in the same
+// space as EntityIDs, working backwards from 51
+typedef ID16 = Blob(17);
+
+typedef PlanID = Blob(17);
+typedef PriceID = Blob(17);
+typedef CancelID = Blob(17);
+typedef VHostID = Blob(17);
+typedef TeamRSVP = Blob(17); // Can be a TeamRSVPRemote or a TeamRSVPLocal
+typedef TeamRSVPLocal = Blob(17);
+typedef TeamRSVPRemote = Blob(17);
+typedef LocalInstanceID = Blob(17);
+typedef PermissionToken = Blob(17);
+typedef ReservationToken = Blob(17);
+typedef AutocertID = Blob(17);
+typedef OAuth2SessionID = Blob(17);
+typedef SSOConfigID = Blob(17);
+typedef CKSKeyID = Blob(17);
+
+enum ID16Type {
+    Plan @61; 
+    Cancel @60;
+    Price @59;
+    VHost @58;
+    TeamRSVPLocal @57;
+    TeamRSVPRemote @56;
+    LocalInstance @55;
+    PermissionToken @54;
+    ReservationToken @53;
+    Autocert @52;
+    OAuth2Session @51;
+    SSOConfig @50;
+    CKSKey @49;
+    MaxEntityType @48;
+}
+
+// A stringified ID16 (with leading prefix).
+typedef ID16String = Text;
+
+// A stringified TeamRSVP2 (with leading prefix).
+typedef TeamRSVPString = Text;
+
+// A stringified OAuth2SessionID (with leading prefix).
+typedef OAuth2SessionIDString = Text;
+
+// Milliseconds since Jan 1, 1970.
+typedef Time = Uint;
+
+// Microseconds since Jan 1, 1970
+typedef TimeMicro = Uint;
+
+// Duration in seconds; can go negative
+typedef DurationSecs = Int;
+
+// Duration in milliseconds
+typedef DurationMilli = Uint;
+
+// FQUser = "fully qualified user"
+struct FQUser @0x98c90258bf748a2f {
+    uid @0: UID;
+    hostID @1 : HostID;
+}
+
+struct FQUserAndRole @0xe411cca2d702d96b {
+    fqu @0 : FQUser;
+    role @1 : Role;
+}
+
+typedef FQUserAndRoleString = Text;
+
+struct SubjectKeyID {
+    fqu @0 : FQUser;
+    keyType @1 : EntityType;
+}
+
+typedef Ed25519PublicKey = Blob(32);
+typedef Ed25519Signature = Blob(64);
+typedef Curve25519PublicKey = Blob(32);
+typedef ECDSACompressedPublicKey @0xf3bcedcbd7b6754e = Blob;
+typedef Ed25519SecretKey = Blob(32);
+typedef SecretBoxKey = Blob(32);
+typedef Curve25519SecretKey = Blob(32);
+typedef ECDSASignature = Blob;
+typedef HMACKey = Blob(32);
+typedef TreeLocation @0xaeffd88b6cd267d9 = Blob(32);
+typedef TreeLocationCommitment @0xfbb95b5b0b49d6e3 = StdHash;
+typedef LinkHash = StdHash;
+typedef Passphrase = Text;
+
+// KEM key materials, etc.
+typedef KemSharedKey = Blob;
+typedef KemDecapKey = Blob;
+typedef KemCiphertext = Blob;
+typedef KemSeed = Blob;
+
+typedef MlkemSeed = Blob(64);
+
+enum KEMType {
+    None @0;
+    Mlkem768 @1;
+}
+
+variant KemEncapKey switch (t : KEMType) {
+    case Mlkem768 @1 : Blob;
+}
+
+// Standard hash is SHA512/256.
+typedef StdHash = Blob(32);
+
+typedef RandomCommitmentKey = Blob(16);
+
+// HMAC-SHA-512-256
+typedef HMAC = Blob(32);
+
+typedef NaclCiphertext = Blob;
+typedef NaclNonce = Blob(16); // Prefix with the 8-byte object ID
+
+enum BoxType {
+    NACL @0;
+    YUBI @1;
+    HYBRID @2;
+}
+
+struct NaclSecretBox {
+    nonce @0 : NaclNonce;
+    ciphertext @1 : NaclCiphertext;
+}
+
+variant SecretBox switch (t : BoxType) {
+    case NACL @0 : NaclSecretBox;
+}
+
+// pk and nonce can potentially be inferred from context, hence optional
+struct NaclBox {
+    pk @0 : Option(Curve25519PublicKey);
+    nonce @1 : Option(NaclNonce);
+    ciphertext @2 : NaclCiphertext;
+}
+
+variant Box switch (t : BoxType) @0xb83ffa8f8cfd2ee3 {
+    case NACL @0 : NaclBox;
+    case YUBI @1 : YubiBox;
+    case HYBRID @2 : BoxHybrid;
+}
+
+enum SignatureType {
+    EDDSA @0;
+    ECDSA @1;
+}
+
+variant Signature switch (t : SignatureType) {
+    case EDDSA @0 : Ed25519Signature;
+    case ECDSA @1 : ECDSASignature;
+}
+
+struct TempDHKeySigTemplate @0xd51b5d990285023e {
+    boxSetId @0 : BoxSetID;
+    tempDHKey @1 : TempDHKey;
+    signer @2 : FQEntity;
+}
+
+struct TempDHKey {
+    key @0 : DHPublicKey;
+    time @1 : Time;
+}
+
+struct TempDHKeySigned {
+    tempDHKey @0 : TempDHKey;
+    sig @1 : Signature;
+}
+
+typedef BoxSetID = Blob(16);
+
+// The signer public keys can be inferred from context, since they are in the context
+// of sending up signatures, etc. We'll need a temporary DH key if we are a yubikey
+// encrypting for a device, or similarly, a device encrypting for a yubikey. But we
+// should only need one of these per boxset. Yet, we need to be careful to sign it
+// so that way the sender can't be forged. The sender will be infered from the
+// session context.
+struct SignedBoxSet {
+    id @0 : BoxSetID;
+    boxes @1 : List(Box);
+    tempDHKeySigned @2 : Option(TempDHKeySigned);
+}
+
+// Yubiboxes are very similar to NaclBoxes but instead use ECDH over p256 for
+// key agreement. Usually we'll use an empty nonce and a fresh key, but in the
+// case of one yubikey encrypting for another, we can use a long-lived key.
+struct YubiBox {
+    pk @0 : Option(ECDSACompressedPublicKey);
+    secretBox @1 : SecretBox;
+}
+
+struct KeySuite {
+    entity @0 : EntityID;
+    hepk   @1 : HEPK;
+}
+
+typedef Hostname = Text;
+typedef BindAddr = Text;
+typedef TCPAddr = Text;
+typedef Port = Uint;
+typedef ZoneID = Text;
+
+enum ShortIDType {
+    WaitList @1;
+}
+
+typedef ShortID = Blob(13);
+typedef WaitListID = ShortID; // 0x1 leading byte
+
+enum ServerType {
+    None @0;
+    Reg @1;
+    User @2;
+    MerkleBuilder @3;
+    InternalCA @4;
+    MerkleQuery @5;
+    Queue @6;
+    Tools @7;
+    MerkleBatcher @8;
+    MerkleSigner @9;
+    Probe @10;
+    Beacon @11;
+    KVStore @12;
+    Quota @13;
+    Autocert @15;
+    Web @64;
+    Test @101;
+}
+
+typedef FQUserString = Text;
+typedef FQTeamString = Text;
+typedef FQPartyString = Text;
+typedef HostString = Text;
+typedef UserString = Text;
+typedef TeamString = Text;
+typedef PartyString = Text;
+typedef RoleString = Text;
+
+variant ParsedTeam switch (s : bool) {
+    case false @0 : TeamID;
+    case true @1 : NameUtf8;
+}
+
+struct PartyName {
+    name @0 : NameUtf8;
+    isTeam @1 : Bool;
+}
+
+enum PartyType {
+    User @0;
+    Team @1;
+}
+
+variant ParsedParty switch (s : bool) {
+    case false @0 : PartyID;
+    case true @1 : PartyName;
+}
+
+variant ParsedUser switch (s : bool) {
+    case false @0 : UID;
+    case true @1 : NameUtf8;
+}
+
+variant ParsedHostname switch (s : bool) {
+    case false @0 : HostID;
+    case true @1 : TCPAddr;
+}
+
+struct FQUserParsed {
+    user @0 : ParsedUser;
+    host @1 : Option(ParsedHostname);
+}
+
+struct FQTeamParsed @0xc3e7f63d5c536710 {
+    team @0 : ParsedTeam;
+    host @1 : Option(ParsedHostname);
+}
+
+struct FQPartyParsed {
+    party @0 : ParsedParty;
+    host @1 : Option(ParsedHostname);
+}
+
+// Hybrid Encryption Public Key
+struct HEPKv1 @0x9c267d45631bb8c1 {
+    classical @0 : DHPublicKey;
+    pqkem @1 : KemEncapKey;
+}
+
+enum HEPKVersion {
+    None @0;
+    V1 @1;
+}
+
+variant HEPK switch (v : HEPKVersion) @0x9c581beed36c7e0c {
+    case V1 @1 : HEPKv1;
+}
+
+struct HEPKSet {
+    v @0 : List(HEPK);
+}
+
+// Hash of the above
+typedef HEPKFingerprint = StdHash;
+
+enum CryptosystemType {
+    Classical @0;
+    PQKEM @1;
+}
+
+// The approach here is inspired by the X-Wing IETF draft:
+//   https://www.ietf.org/archive/id/draft-connolly-cfrg-xwing-kem-01.html#PROOF
+//
+// Unlike everywhere else, we use SHA3 as per IETF draft and accompanying paper.
+struct HybridSecretKeySHA3Payload @0x8a9e327647262289 {
+    version @0 : BoxHybridVersion;
+    pqKemKey @1 : KemSharedKey;
+    dhSharedKey @2 : DHSharedKey; 
+    rcvr @3 : HEPK;
+    sndr @4 : DHPublicKey;
+}
+
+enum BoxHybridVersion {
+    V1 @1;
+}
+
+variant BoxHybrid switch (v : BoxHybridVersion) {
+    case V1 @1 : BoxHybridV1;
+}
+
+struct BoxHybridV1 {
+    kemCtext @0 : KemCiphertext;
+    dhType @1 : DHType;
+    sender @2 : Option(DHPublicKey); // Only needed if ephemeral sender
+    sbox @3 : SecretBox;
+}
+
+// Prefix-hash one of these to get a SecretSeet32. Input is ~190 bits of
+// entropy. but stretched out via SHA2.
+// For derivation of the 26-byte size, see lib/core/bkp.go
+typedef BackupSeed @0xf4c4fe8dff61a6dc = Blob(26);
+
+enum BackupKeyVersion {
+    V1 @1;
+}
+
+struct Rational {
+    Infinity @0 : Bool;
+    Base @1 : Blob;
+    Exp @2 : Int;
+}
+
+struct RationalRange {
+    low @0 : Rational;
+    high @1 : Rational;
+}
+
+typedef Name = Text; // Can be for Username or Team; Ascii Only
+
+struct NameHashPreimage @0xf8556f054c4e036b {
+    name @0 : Name;
+    hostId @1 : HostID;
+}
+
+enum HostBuildStage {
+    None @0;
+    Complete @1;
+    Aborted @2;
+    Stage1 @3;
+    Stage2a @4;
+    Stage2b @5;
+}
+
+enum AutocertState {
+    None @0;
+    OK @1;
+    Failing @2;
+    Failed @3;
+}
+
+// needed for Oauth2
+struct RSAPub @0xce5b107c6468c230 {
+    n @0 : Blob;
+    e @1 : Uint;
+}
+
+// CKSEncKey are used to encrypt private keys before storage in the DB.
+typedef CKSEncKey @0x84958839de919b43 = Blob(32);
+
+// CKSEncKeyString is a base62-encoded CKSEncKey
+typedef CKSEncKeyString = Text;
+
+struct CKSBox {
+    key @0 : CKSKeyID;
+    box @1 : SecretBox;
+}
+
+typedef CKSKeyData @0xddc1bec2d4dfc433 = Blob;
+
+struct CKSCertChain @0xe87182df53b5e710 {
+    certs @0 : List(Blob);
+}
+
+enum CKSAssetType {
+    None @0;
+    InternalClientCA @1;
+    ExternalClientCA @2;
+    HostchainFrontendCA @3;
+    BackendCA @4;
+    HostchainFrontendX509Cert @5;
+    RootPKIFrontendX509Cert @6;
+    RootPKIBeaconX509Cert @7;
+    BackendX509Cert @8;
+}
+
+enum CKSCertKeyType {
+    Ed25519 @1;
+    X509 @2;
+}
+
+variant CKSCertKey switch (t : CKSCertKeyType) @0xe114c9d651c01a53 {
+    case Ed25519 @1 : Ed25519SecretKey;
+    case X509 @2 : Blob;
+}
+
+typedef PKIXKeyBytes @0x9a88488af5e5adfa = Blob;
+typedef Generation = Uint;
+typedef Seqno = Uint;
+typedef SecretSeed32 = Blob(32);
+
+enum UserSettingsType {
+    Passphrase @0;
+}
+struct PassphraseInfo {
+   gen @0 : PassphraseGeneration;
+   salt @1 : Option(PassphraseSalt);
+   sv @2 : StretchVersion;
+}
+
+typedef PassphraseGeneration = Uint;
+
+// Likely we'll never change, but if we do, we'll have a slot for it.
+// One int should encapsulate algorithm + params. We do use a stretch parameter
+// set for testing (so as not to slow down tests too much) but we should be
+// careful that doesn't leak into the wild.
+enum StretchVersion {
+    TEST @0; 
+    V1 @1;
+}
+
+typedef PassphraseSalt = Blob(16);
+
+enum SecretKeyStorageType {
+    PLAINTEXT @0;
+    ENC_PASSPHRASE @1;
+    ENC_MACOS_KEYCHAIN @2;
+    ENC_NOISE_FILE @3;
+    ENC_KEYCHAIN @4;
+}
+
+typedef URLString = Text;
+typedef HMACKeyID = Blob(16);
+typedef Random16 = Blob(16);
+
+struct Date {
+    year @0 : Uint;
+    month @1 : Uint;
+    day @2 : Uint;
+}
+
+typedef DbKey = Blob;

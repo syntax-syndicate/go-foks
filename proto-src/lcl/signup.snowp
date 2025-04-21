@@ -1,0 +1,162 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x882a4c70a50d01fe;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef InviteCodeString = Text;
+
+struct ViewToken {
+    isSelf @0 : Bool;
+    token @1 : lib.PermissionToken;
+}
+
+struct PutYubiSlotRes {
+    username @0 : Option(lib.Name);
+    device @1 : lib.YubiCardInfo; // Updated to reflect selection
+    chosenSlot @2 : lib.YubiSlot;
+    idxType @3 : lib.YubiIndexType;
+}
+
+struct SsoLoginFlow {
+    url @0 : lib.URLString;
+}
+
+struct ListYubiSlotsRes {
+    device @0 : Option(lib.YubiCardInfo);
+}
+
+struct FinishRes {
+    regServerType @0 : RegServerType;
+    hostType @1 : lib.HostType;
+}
+
+protocol Signup 
+    errors lib.Status 
+    argHeader Header
+    resHeader Header @0xe7053af6 {
+
+    loginAs @4 (
+        sessionId @0 : lib.UISessionID,
+        user @1 : lib.UserInfo
+    );
+
+    putInviteCode @6 (
+        sessionId @0 : lib.UISessionID,
+        inviteCode @1 : InviteCodeString
+    );
+
+    putUsername @7 (
+        sessionId @0 : lib.UISessionID,
+        username @1 : lib.NameUtf8
+    );
+
+    listYubiSlots @8 (
+        sessionId @0 : lib.UISessionID
+    ) -> ListYubiSlotsRes;
+
+    joinWaitList @9 (
+        sessionId @0 : lib.UISessionID
+    ) : CliJoinWaitListArg -> lib.WaitListID;
+
+    putDeviceName @10 (
+        sessionId @0 : lib.UISessionID,
+        deviceName @1 : lib.DeviceName
+    );
+
+    putEmail @11 (
+        sessionId @0 : lib.UISessionID,
+        email @1 : lib.Email
+    );
+
+    finish @12 (
+        sessionId @0 : lib.UISessionID
+    ) -> FinishRes;
+
+    putYubiSlot @14 (
+        sessionId @0 : lib.UISessionID,
+        index @1 : lib.YubiIndex,
+        typ @2 : lib.CryptosystemType
+    ) -> PutYubiSlotRes;
+
+    isUsernameServerAssigned @15 (
+        sessionId @0: lib.UISessionID
+    ) -> Bool;
+
+    startKex @17 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.KexHESP;
+
+    gotKexInput @18 (
+        k @0 : KexSessionAndHESP
+    );
+
+    kexCancelInput @19 (
+        sessionId @0 : lib.UISessionID
+    );
+
+    waitForKexComplete @20 (
+        sessionId @0 : lib.UISessionID
+    );
+
+    finishYubiProvision @21 (
+        sessionId @0 : lib.UISessionID
+    );
+
+    getDeviceType @22 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.DeviceType;
+
+    getActiveUserForProvision @23 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.UserContext;
+
+    promptForPassphrase @24 (
+        sessionId @0 : lib.UISessionID
+    ) -> Bool;
+
+    putPassphrase @25 (
+        sessionID @0 : lib.UISessionID,
+        passphrase @1 : lib.Passphrase
+    );
+
+    // For some signup variants like `yubi new`, we require a logged-in user,
+    // but can use that user to load in state. Will fail with an error if
+    // no active user.
+    loadStateFromActiveUser @26 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.UserInfo;
+
+    finishYubiNew @27 (
+        sessionId @0 : lib.UISessionID
+    );
+
+    signupStartSsoLoginFlow @28 (
+        sessionId @0 : lib.UISessionID
+    ) -> SsoLoginFlow;
+
+    signupWaitForSsoLogin @29 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.SSOLoginRes;
+
+    getUsernameSSO @30 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.NameUtf8;
+
+    getEmailSSO @31 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.Email;
+
+    getSkipInviteCodeSSO @32 (
+        sessionId @0 : lib.UISessionID
+    ) -> Bool;
+
+    finishNKWNewDeviceKey @33 (
+        sessionId @0 : lib.UISessionID
+    );
+
+    finishNKWNewBackupKey @34 (
+        sessionId @0 : lib.UISessionID
+    ) -> BackupHESP;
+}

@@ -1,0 +1,156 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/foks-proj/go-foks/lib/core"
+	"github.com/foks-proj/go-foks/server/web/lib"
+)
+
+templ usageRow(row lib.UsageRow, isMine bool, disable bool) {
+	<form
+		class={ "usage-row contents " + core.Sel(isMine, "mine", "theirs") }
+		id={ "form-" + row.Id.CSSId() }
+	>
+		<div>
+			if !row.IsTeam {
+				<span class="opacity-50 text-yellow-400">★</span>
+			} else if row.IsClaimedByMe {
+				<button
+					class="responsive-inline-button unclaim-button disabled:opacity-50"
+					id={ "button-unclaim-" + row.Id.CSSId() }
+					hx-delete={ "/admin/claim/" + string(row.Id) }
+					hx-trigger="click"
+					hx-swap="outerHTML"
+					hx-target="closest form"
+					hx-indicator={ "#spinner-unclaim-" + row.Id.CSSId() + ",#button-unclaim-" + row.Id.CSSId() }
+				>
+					<span class="text-yellow-400">★</span>
+				</button>
+				<img
+					id={ "spinner-unclaim-" + row.Id.CSSId() }
+					class="button-spinner htmx-indicator"
+					src="/static/img/bars-scale-fade.svg"
+				/>
+			} else {
+				<button
+					class="responsive-inline-button claim-button disabled:opacity-20"
+					id={ "button-claim-" + row.Id.CSSId() }
+					hx-put={ "/admin/claim/" + string(row.Id) }
+					hx-trigger="click"
+					hx-swap="outerHTML"
+					hx-target="closest form"
+					hx-indicator={ "#spinner-claim-" + row.Id.CSSId() + ",#button-claim-" + row.Id.CSSId() }
+					disabled?={ disable }
+				>☆ </button>
+				<img
+					id={ "spinner-claim-" + row.Id.CSSId() }
+					class="button-spinner htmx-indicator"
+					src="/static/img/bars-scale-fade.svg"
+				/>
+			}
+		</div>
+		<div>
+			<span>{ string(row.Name) } </span>
+			if !row.IsTeam {
+				(<i>personal</i>)
+			}
+		</div>
+		<div class="text-end">
+			if row.IsClaimed {
+				<span>☑</span>
+			} else {
+				<span>☐</span>
+			}
+		</div>
+		<div class="text-end whitespace-nowrap ml-2">
+			<span>{ row.Usage.HumanReadable() }</span>
+		</div>
+	</form>
+}
+
+templ usageRowSet(rows []lib.UsageRow, isMine bool, disable bool) {
+	<form class="hidden" id={ "form-" + core.Sel(isMine, "mine", "theirs") + "-0" }></form>
+	for _, row := range rows {
+		@usageRow(row, isMine, disable)
+	}
+}
+
+templ usageTable(u *lib.AdminPageData) {
+	<div
+		class="grid grid-cols-[1rem_1fr_1rem_min-content] gap-2 text-sm"
+		id="teams-table"
+	>
+		@usageRowSet(u.Usage.Mine, true, false)
+		<div
+			class={ "border-t-2 col-span-4 m-1 border-dotted border-slate-400 " + 
+		        core.Sel(u.Usage.HasTheirs(), "", "hidden") }
+			id="teams-table-sep"
+		></div>
+		@usageRowSet(u.Usage.Others, false, !u.Usage.CanAddMoreTeams())
+	</div>
+}
+
+templ usagePill(u *lib.UsageData, swap string) {
+	@leftColPill("usage-pill", swap) {
+		<div>
+			<h3 class="font-semibold text-slate-700">
+				<a
+					hx-trigger="click"
+					hx-swap="innerHTML"
+					hx-target="main#admin-main"
+					hx-get="/admin/main"
+					class="hover:underline hover:cursor-pointer"
+					id="quota-and-usage"
+				>
+					Quota and Usage 
+				</a>
+			</h3>
+		</div>
+		<div class="m-1">
+			<span class="text-slate-700">Plan: </span>
+			<span>
+				if u.UserPlan == nil || !u.UserPlan.IsLive() {
+					<i>none active </i>
+				} else {
+					<a
+						hx-trigger="click"
+						hx-swap="innerHTML"
+						hx-target="main#admin-main"
+						hx-get={ "/admin/plans/active" }
+						class="hover:underline hover:cursor-pointer active-plan"
+					>
+						{ u.UserPlan.Plan.DisplayName }
+					</a>
+				}
+			</span>
+		</div>
+		<div class="m-1">
+			<span class="text-slate-700">
+				Linked teams:
+			</span>
+			<span>
+				{ fmt.Sprintf("%d" , u.Summary.NumTeams) } / 
+				<span id="max-teams">
+					{ fmt.Sprintf("%d", u.MaxTeams()) }
+				</span>
+			</span>
+		</div>
+		<div class="m-1">
+			<span class="text-slate-700">
+				Disk usage:
+			</span>
+			<span>
+				{ 
+      fmt.Sprintf("%s / %s",
+        u.Summary.Total.HumanReadable(),
+        u.UserPlan.QuotaString(),
+      ) }
+			</span>
+		</div>
+		if u.Summary.OverQuota {
+			<div class="m-1 mt-2 bg-red-600 text-center">
+				<span class="font-medium text-white">⚠️ Over Quota ⚠️</span>
+			</div>
+		}
+	}
+}

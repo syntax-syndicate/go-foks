@@ -1,0 +1,53 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x90440ed7001aacba;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct LocalUserIndexParsed {
+    fqu @0 : lib.FQUserParsed;
+    role @1 : lib.Role;
+    keyGenus @2 : Option(lib.KeyGenus);
+}
+
+struct AgentStatus {
+    pid @0 : Int;
+    socket @1 : Text;
+    users @2 : List(lib.UserContext);
+}
+
+struct ActiveUserCheckLockedRes {
+    user @0 : lib.UserContext;
+    lockStatus @1 : lib.Status;
+}
+
+protocol User 
+    errors lib.Status 
+    argHeader Header 
+    resHeader Header @0xcc5e1b3e {
+        
+    clear @0 () ;
+    agentStatus @1 () -> AgentStatus;
+    activeUser @2 () -> lib.UserContext;
+    switchUser @3 ( fqu @0 : LocalUserIndexParsed );
+    switchUserByInfo @4 ( i @0 : lib.UserInfo );
+    getExistingUsers @5 () -> List(lib.UserInfo);
+    activeUserCheckLocked @6 () -> ActiveUserCheckLockedRes;
+    loadMe @7 () -> UserMetadataAndSigchainState;
+    skmInfo @8 () -> StoredSecretKeyBundle;
+    setSkmEncryption @9 (
+        mode @0 : lib.SecretKeyStorageType
+    );
+    userLock @10 ();
+    ping @11 () : ClientUserPingArg -> lib.FQUser;
+
+    loginStartSsoLoginFlow @12 (
+        sessionId @0 : lib.UISessionID
+    ) -> SsoLoginFlow;
+
+    loginWaitForSsoLogin @13 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.SSOLoginRes;
+
+}

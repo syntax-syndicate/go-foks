@@ -1,0 +1,34 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xdba32f29cc121901;
+
+enum ViewershipMode {
+    Closed @0;
+    OpenToAdmin @1;
+    OpenToAll @2;
+}
+
+enum HostType {
+    None @0;
+    BigTop @1;
+    VHostManagement @2;
+    VHost @3;
+}
+
+struct HostViewership {
+    user @0 : ViewershipMode;
+    team @1 : ViewershipMode;
+}
+
+struct Metering {
+    users @0 : Bool;
+    vHosts @1 : Bool;
+    perVHostDisk @2 : Bool;
+}
+
+struct HostConfig {
+    metering @0 : Metering;
+    viewership @1 : HostViewership;
+    typ @2 : HostType;
+}

@@ -1,0 +1,18 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x9c4fa2c3422f86cd;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+protocol Passphrase errors lib.Status @0xf099577a {
+
+    passphraseUnlock @0 (
+        passphrase @0 : lib.Passphrase
+    );
+
+    passphraseSet @1 (
+        passphrase @0 : lib.Passphrase,
+        first @1 : Bool
+    );
+}

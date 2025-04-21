@@ -1,0 +1,24 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xdbbda63a44a9623e;
+
+struct PublicServices {
+    probe @0 : TCPAddr; // Still send back our canonical hostname in case an alias was used to find us
+    reg @1 : TCPAddr;
+    user @2 : TCPAddr;
+    merkleQuery @3 : TCPAddr;
+    kvStore @4 : TCPAddr;
+}
+
+struct PublicZone {
+    ttl @0 : DurationSecs;
+    services @1 : PublicServices;
+}
+
+typedef PublicZoneBlob @0xd4f1ec4f90eb2c6d = Future(PublicZone);
+
+struct SignedPublicZone {
+    inner @0 : PublicZoneBlob;
+    sig @1 : Signature;
+}

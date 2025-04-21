@@ -1,0 +1,126 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xa9dfd240ef1f812e;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+// PPE = PassphraseEncryption
+//
+// In passphrase encryption, we use a lousy passphrase to encrypt the user's private device key. I
+// don't like passprhases very much, but folks are bound to ask that their local keys can be protected
+// with passphrases, and it's important to build it sooner rather than later. 
+//
+// Import design constraints:
+//  * If you have two computers, A and B, and you change your passphrase on A, when B comes online
+//    with the old passphrase, it has to decrypt with the new passphrase.
+//  * Keys boxed with old passphrases need to eventually be migrated to the new passphrase, so that if
+//    an attacker gets the old passphrase and all server data, they still can't decrypt the key.  Of course
+//    this is only possible if that computer B comes back online after the change, but assuming that
+//    the property should hold.
+//  * To change the passphrase and recover keys, it is sufficient to know the latest PUK.
+//  * As with passphrases, if the PUK is updated, all machines with passphrase-encrypted keys
+//    should eventually rotate (when they come online) so that they cannot be decrypted with an old PUK
+//
+// Setup:
+//
+// Imagine a scneario with 2 rotations, 1 due to passphrase changes, and 1 due to PUK rotations:
+//
+//   | r_0 | r_1 | r_2 |      - Secret Key Material Wrapping Keys
+//     s_0   s_1   s_2        - session keys
+//     t_0   t_1   t_2        - ephemeral DH key
+//     p_0   p_0   p_1        - passphrases v0 and v1
+//     u_0   u_1   u_1        - PUK secret box keys v0 and v1
+//
+// The general idea is that we have a new session key in every update, which is symmetrically
+// encrypting the goods, r_0, r_1, etc. That session key is dubbed s_i. We're going to encrypt
+// this session key twice --- once for a key derived from the current passphrase, and once for
+// a key dervied from the PUK. This allows recovery of the goods (r_0, r_1, etc) with either
+// the passphrase or the PUK.
+//
+// At stage 0, we have passphrase p_0 and PUK u_0:
+//
+//   e_0 = E({[r_0]}, s_0)                          - encrypt the list [r_0] with the session key s_0, secretBox
+//   f_0 = E({s_0,0}, PK(p_0), SK(t_0)), PK(t_0)    - encrypt the session key s_0 with a public key derived from p_0
+//   g_0 = E({s_0, PK(p_0), 0}, u_0), 0             - encrypt the session key s_0 and the passphrase PK for u_0, secretBox
+//
+// At stage 1 we have passphrase p_0 and the PUK updated to u_1. We need to reencrypt the session key for
+// the old passphrase, but we don't want to bother the user by asking for their passphrase. This is why we
+// use public key encryption (not secretBox) for f_0
+//
+//   e_1 = E({[r_0, r_1]}, s_1)                     - encrypt the list [r_0, r_1] with the session key s_1, secretBox
+//   f_1 = E({s_1,1}, PK(p_0), SK(t_1)), PK(t_1)    - encrypt the session key s_1 with a public key derived from p_0
+//   g_1 = E({s_1, PK(p_0), 1}, u_1), 1             - encrypt the session key s_1 and the passphrase PK for u_1, secretBox
+//
+// And stage 2 we have a new passphrase p_1 and the PUK unchanged at u1:
+//
+//   e_2 = E({[r_0, r_1, r_2]}, s_2)                - encrypt the list [r_0, r_1, r_2] with the session key s_2, secretBox
+//   f_2 = E({s_2,2}, PK(p_1), SK(t_2)), PK(t_2)    - encrypt the session key s_2 with a public key derived from p_1
+//   g_2 = E({s_2, PK(p_1), 1}, u_1), 1             - encrypt the session key s_2 and the passphrase PK for u_1, secretBox
+//
+
+// Secret Key Material Wrapping Key
+typedef SKMWK = lib.SecretBoxKey;
+
+// SKMWKList is stored encrypted on the server, encrypted with a secret key
+// derived from the user's passphrase. It's a list of all historical SecretKey material 
+// wrapping Keys (SKMWK) so that the user can always decrypt an old secret key stored on disk
+// with the newest passphrase.
+//
+// In our examples above, e_i payload
+//
+struct SKMWKList @0x813191a3c2c88094 {
+    fqu @0 : lib.FQUser;        // Keep this in the plaintext to prevent strange server-swap attacks
+    keys @1 : List(SKMWK);  // Should include every ppvers, which start at 0
+}
+
+// == s_0 etc above
+typedef PpeSessionKey = Blob(32);
+
+// g_i payload
+struct PpePUKBoxPayload @0x82a769eb072624cd {
+    gen @0 : lib.PassphraseGeneration;
+    sesskey @1 : PpeSessionKey;
+    passphrase @2 : lib.HEPK;
+}
+
+// g_i is lib.PpePUKBox which is:
+//struct PpePUKBox {
+//   box @ 0 : lib.SecretBox;
+//    pukGen @ 1 : lib.Generation;
+//    pukRole @ 2 : lib.Role;
+//}
+
+// f_i payload
+struct PpePassphraseBoxPayload @0x978c22a7627d777b {
+    gen @0 : lib.PassphraseGeneration;
+    sesskey @1 : PpeSessionKey;
+}
+
+// f_i above is lib.PpePassphraseBox which is:
+// struct PpePassphraseBox { 
+//    box @0 : lib.Box;
+//}
+
+struct RotatePPEWithPUK {
+    ppGen @0 : lib.PassphraseGeneration;
+    skwkBox @1 : lib.SecretBox;
+    passphraseBox @2 : lib.PpePassphraseBox;
+    pukBox @3 : lib.PpePUKBox; 
+}
+
+struct KexPPE {
+    skwk @0 : SKMWK;
+    ppGen @1 : lib.PassphraseGeneration;
+    salt @2 : lib.PassphraseSalt;
+    sv @3 : lib.StretchVersion;
+}
+
+struct UnlockedSKMWK {
+    Lst @0 : List(SKMWK);
+    Salt @1 : lib.PassphraseSalt;
+    ExpectedGen @2 : lib.PassphraseGeneration;
+    Ppk @3 : lib.HEPK;
+    Sv @4 : lib.StretchVersion;
+    VerifyKey @5 : lib.EntityID;
+}

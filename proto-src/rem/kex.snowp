@@ -1,0 +1,42 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x8f8320c711294286;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+// Message delivered over the queue service to poke us
+struct QueueMsg {
+    seneder @0 : lib.EntityID;
+    seqno @1 : lib.KexSeqNo;
+}
+
+enum KexActorType {
+    Provisioner @1;
+    Provisionee @2;
+}
+
+struct KexWrapperMsg @0xc59be470ee7ecc62 {
+    sessionID @0 : lib.KexSessionID;
+    sender @1 : lib.EntityID;
+    seq @2 : lib.KexSeqNo;
+    payload @3 : lib.SecretBox;
+}
+
+protocol kex errors lib.Status @0xae4df828 {
+
+    send @0 (
+        msg @0 : KexWrapperMsg,
+        sig @1 : lib.Signature,
+        actor @2 : KexActorType
+    );
+
+    receive @1 (
+        sessionID @0 : lib.KexSessionID,
+        receiver @1 : lib.EntityID,
+        seq @2 : lib.KexSeqNo,
+        pollWait @3 : lib.DurationMilli,
+        actor @4 : KexActorType
+    ) -> KexWrapperMsg;
+
+}

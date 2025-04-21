@@ -1,0 +1,15 @@
+# Simple Prod Setup Notes
+
+## Simple Ec2 node
+  - ubuntu t4g.medium (2 vcpu, 4gb ram)
+  - 64gb ebs gp3
+
+## Setup
+- ssh ubuntu@<ip>
+- sudo bash
+- apt update
+- apt upgrade
+- reboot
+
+## Docker
+ - instructions from here:

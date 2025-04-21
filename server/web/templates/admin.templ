@@ -1,0 +1,90 @@
+package templates
+
+import (
+	proto "github.com/foks-proj/go-foks/proto/lib"
+	"github.com/foks-proj/go-foks/server/web/lib"
+)
+
+templ AdminMain(u *lib.AdminPageData) {
+	switch u.Which.HostType {
+		case proto.HostType_BigTop:
+			switch u.Which.PageType {
+				case lib.PageTypeUsage:
+					@usageTable(u)
+				case lib.PageTypePlans:
+					@Plans(u)
+				default:
+					<div>🦊</div>
+			}
+		case proto.HostType_VHostManagement:
+			switch u.Which.PageType {
+				case lib.PageTypeUsage:
+					@vHostsTable(u, &lib.VHostAddArgs{})
+				default:
+					<div>🦊</div>
+			}
+		default:
+			<div>🦊</div>
+	}
+}
+
+templ billingPill(u *lib.AdminPageData) {
+	@leftColPill("billing", "") {
+		<h3 class="font-semibold text-slate-700">
+			Billing
+		</h3>
+		<ul class="m-1">
+			<li class="my-1">
+				<a
+					hx-trigger="click"
+					hx-swap="innerHTML"
+					hx-target="main#admin-main"
+					hx-get="/admin/plans/main"
+					class="hover:underline hover:cursor-pointer"
+					id="menu-plans"
+				>Plans</a>
+			</li>
+			<li class="my-1">
+				<a
+					hx-trigger="click"
+					hx-swap="innerHTML"
+					hx-target="main#admin-main"
+					hx-get="/admin/plans/invoices"
+					class="hover:underline hover:cursor-pointer"
+				>
+					Payment History
+				</a>
+			</li>
+		</ul>
+	}
+}
+
+templ adminMenuBar(u *lib.AdminPageData) {
+	@errorDiv()
+	switch u.Which.HostType {
+		case proto.HostType_BigTop:
+			@usagePill(u.Usage, "")
+		case proto.HostType_VHostManagement:
+			@vhostUsagePill(u, "")
+		default:
+			<div>🦊</div>
+	}
+	@billingPill(u)
+}
+
+templ Admin(u *lib.AdminPageData) {
+	<div class="m-3">
+		@topBar(u.User, u.HostConfig.Typ)
+		<div class="grid xs:grid-cols-1 sm:grid-cols-[17rem_auto]">
+			<div class="w-full">
+				@adminMenuBar(u)
+			</div>
+			<div class="p-3 mb-2 mt-0 ml-0 mr-0 admin-panel-border">
+				<main id="admin-main">
+					@AdminMain(u)
+				</main>
+			</div>
+		</div>
+	</div>
+	@Toast()
+}

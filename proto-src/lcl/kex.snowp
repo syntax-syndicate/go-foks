@@ -1,0 +1,61 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xbe5629c46d58a70d;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+enum KexDerivationType {
+    SessionID @0;
+    SecretBoxKey @1;
+}
+
+variant KexKeyDerivation switch (t: KexDerivationType) @0x8d7bc7703f63ad64 {
+    default: void;
+}
+
+struct KexCleartext @0xd2bce8263ea1dc0b {
+    seesionID @0 : lib.KexSessionID;
+    sender @1 : lib.EntityID;
+    seq @2 : lib.KexSeqNo;
+    msg @3 : KexMsg;
+}
+
+
+struct KexError {
+    status @0 : lib.Status;
+}
+
+// X = Provisioner
+// Y = Provisionee
+enum KexMsgType {
+    Error @0;      // Any direction; send if an error was encountered
+    Start @1;      // X -> Y : Start the protocol
+    Hello @2;      // X <- Y : Send public key and device name
+    PleaseSign @3; // X -> Y : here's a link, sign it.
+    OkSigned @4;   // X <- Y ; done; you sign it too and post it
+    Done @5;       // X -> Y : msg posted
+}
+
+struct PleaseSign {
+   link @0 : lib.LinkOuter; 
+   ppe @1 : Option(KexPPE);
+   tok @2 : lib.PermissionToken;
+}
+
+struct OkSigned {
+    sig @0 : lib.Signature;
+}
+
+struct HelloMsg {
+    keySuite @0 : lib.KeySuite;
+    dln @1 : lib.DeviceLabelAndName;
+}
+
+variant KexMsg switch (t : KexMsgType) @0x90ff590c87e01621 {
+    case Error @0 : KexError;
+    case Start, Done: void;
+    case Hello @1 : HelloMsg;
+    case PleaseSign @2 : PleaseSign;
+    case OkSigned @3: OkSigned;
+}

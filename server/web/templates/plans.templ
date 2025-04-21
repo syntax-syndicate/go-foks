@@ -1,0 +1,389 @@
+package templates
+
+import (
+	"github.com/foks-proj/go-foks/lib/core"
+	"github.com/foks-proj/go-foks/proto/infra"
+	proto "github.com/foks-proj/go-foks/proto/lib"
+	"github.com/foks-proj/go-foks/server/shared"
+	"github.com/foks-proj/go-foks/server/web/lib"
+)
+
+templ showPlan(u *lib.User, up *infra.UserPlan, plan lib.Plan, disabled bool) {
+	<div class="admin-panel-border grow min-w-28 max-w-64 mb-3 mx-2 plan-box">
+		if plan.Active {
+			<div class="z-10 w-12 text-center bg-green-500 p-1 text-xs text-white absolute"><p>active</p></div>
+		}
+		<div class="p-3">
+			<div class="text-center mb-2">
+				<h4 class="font-semibold text-slate-700 plan-name">{ plan.DisplayName }</h4>
+			</div>
+			<div class="text-xs leading-5 mb-3">
+				<ul class="plan-feature-list">
+					for _, item := range plan.Points {
+						<li class="list-inside">{ item }</li>
+					}
+				</ul>
+			</div>
+			<div class="mb-1">
+				<form
+					hx-post={ "/admin/plans/" + plan.Url + "/" + plan.Ids.String() }
+					hx-target="main#admin-main"
+					hx-swap="innerHTML"
+					class="m-0 plan-manage"
+				>
+					<div class="grid grid-cols-[auto_auto]">
+						<div class="text-center">
+							<select
+								id={ "price" + plan.Ids.String() }
+								name="price"
+								class="bg-slate-200 p-1 px-2 text-xs text-center rounded mx-1"
+							>
+								for _, price := range plan.Prices {
+									<option
+										value={ price.Id.String() }
+									>
+										{ price.String() }
+									</option>
+								}
+							</select>
+						</div>
+						<div class="text-center text-xs font-semibold">
+							<button
+								class={ "rounded bg-sky-500 p-1 text-center text-white mx-2 px-3 plan-" + 
+                                 plan.Verb  + core.Sel(disabled, " disabled", "") }
+								type="submit"
+								disabled?={ disabled }
+							>
+								{ plan.Verb }
+							</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+}
+
+templ plansPage() {
+	<div class="text-sm">
+		<h3 class="font-semibold text-slate-700 mb-3">FOKS Data Plans</h3>
+		{ children... }
+	</div>
+}
+
+templ PreviewProration(d *lib.AdminPageData, pd *shared.ProrationPreviewData) {
+	<div class="text-sm">
+		<div class="mb-4">
+			<h4 class="font-semibold text-slate-600 mb-2">Preview Upcoming Changes</h4>
+			<div class="text-xs">
+				<div class="grid grid-cols-2 border-b border-slate-200 py-2">
+					<div class="font-semibold">Description</div>
+					<div class="text-right font-semibold">Amount</div>
+				</div>
+				for _, adj := range pd.Data.Adj {
+					<div class="grid grid-cols-2 border-b border-slate-100 py-2">
+						<div>{ adj.Desc }</div>
+						<div class="text-right">{ adj.Amount.String() }</div>
+					</div>
+				}
+			</div>
+		</div>
+		<div>
+			<div class="text-xs">
+				<div class="font-semibold mb-2">Next Bill ({ pd.Data.NextBill.Time.DateString() }) </div>
+				<div class="grid grid-cols-2 border-b border-slate-100 py-2">
+					<div>Subtotal</div>
+					<div class="text-right">{ pd.Data.NextBill.Subtotal.String() }</div>
+				</div>
+				<div class="grid grid-cols-2 border-b border-slate-100 py-2">
+					<div>Tax</div>
+					<div class="text-right">{ pd.Data.NextBill.Tax.String() }</div>
+				</div>
+				<div class="grid grid-cols-2 py-2 font-semibold">
+					<div>Total</div>
+					<div class="text-right">{ pd.Data.NextBill.Total.String() }</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="flex justify-center gap-4 mt-2">
+		<form
+			hx-patch={ "/admin/plans/active" }
+			hx-target="main#admin-main"
+			hx-swap="innerHTML"
+			hx-indicator=".prorate-spinner,.prorate-button"
+		>
+			<input type="hidden" name="time" value={ proto.ExportTime(pd.Data.Time).String() }/>
+			<input type="hidden" name="subscription_id" value={ pd.Arg.SubID.String() }/>
+			<input type="hidden" name="price_id" value={ pd.Arg.NewPriceID.String() }/>
+			<input type="hidden" name="plan_id" value={ pd.Arg.NewPlanID.String() }/>
+			<button
+				type="submit"
+				name="action"
+				class="rounded bg-sky-500 p-1 text-center text-white mx-2 px-3 text-xs prorate-button responsive-button w-24"
+				value="approve"
+			>
+				approve
+				<img
+					id="spinner-prorate"
+					class="button-spinner htmx-indicator w-3 h-3 prorate-spinner"
+					src="/static/img/bars-scale-fade.svg"
+				/>
+			</button>
+			<button
+				type="submit"
+				name="action"
+				class="rounded bg-gray-500 p-1 text-center text-white mx-2 px-3 text-xs prorate-button responsive-button w-24"
+				value="cancel"
+			>
+				cancel
+				<img
+					id="spinner-prorate"
+					class="button-spinner htmx-indicator w-3 h-3 prorate-spinner"
+					src="/static/img/bars-scale-fade.svg"
+				/>
+			</button>
+		</form>
+	</div>
+}
+
+templ Plans(d *lib.AdminPageData) {
+	@plansPage() {
+		<div class="flex flex-wrap justify-around mb-3">
+			for _, plan := range d.AllPlans {
+				@showPlan(d.User, d.UserPlan, plan, !d.ActiveSess.IsZero())
+			}
+		</div>
+		if !d.ActiveSess.IsZero() {
+			<div class="text-center">
+				<form
+					hx-delete={ "/admin/stripe/session/" + d.ActiveSess.String() }
+					hx-target="main#admin-main"
+					hx-swap="innerHTML"
+					class="m-0"
+				>
+					<button
+						class="rounded bg-orange-500 p-1 text-center text-white mx-2 px-3"
+						type="submit"
+					>
+						Cancel existing checkout session
+					</button>
+				</form>
+			</div>
+		}
+	}
+}
+
+templ Prices(u *lib.User, up *infra.UserPlan, plan lib.Plan) {
+	@plansPage() {
+	}
+}
+
+templ renewalData(d *lib.AdminPageData) {
+	if d.UserPlan.PendingCancel {
+		<span class="text-red-500">Expiring on: </span>
+	} else {
+		<span>Renews on:</span>
+	}
+	<span>
+		{ d.UserPlan.PaidThrough.Import().Format("2006-01-02") }
+	</span>
+	if d.UserPlan.PendingCancel {
+		<span class="text-red-500">(pending cancel)</span>
+	}
+}
+
+templ displayInvoices(d *lib.AdminPageData) {
+	if d.Invoices == nil || d.Invoices.Data == nil {
+		<div class="mb-2">
+			<h4>No Recent Invoices</h4>
+		</div>
+	} else {
+		<div class="mb-2">
+			<h4>Recent Invoices</h4>
+		</div>
+		<div>
+			for _, inv := range d.Invoices.Data {
+				<div>
+					<a
+						href={ templ.SafeURL(inv.Url.String()) }
+						class="hover:underline hover:cursor-pointer"
+					>
+						<div class="flex flex-wrap mb-1">
+							<div class="p-1 w-20 text-xs">
+								{ inv.Time.Import().Local().Format("2006-01-02") }
+							</div>
+							<div class="p-1 w-16 text-xs">
+								{ inv.Amt.String() }
+							</div>
+							<div class="p-1 min-w-20 text-xs grow">
+								{ inv.Desc }
+							</div>
+						</div>
+					</a>
+				</div>
+				<div class="flex justify-center mb-1">
+					<div class="w-80 border-b"></div>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ ManagePlan(d *lib.AdminPageData) {
+	if d.UserPlan == nil || !d.UserPlan.IsLive() {
+		@managePlanDead(d)
+	} else {
+		@managePlanActive(d)
+	}
+}
+
+templ ManagePlanSwapUsagePill(d *lib.AdminPageData) {
+	@ManagePlan(d)
+	@usagePill(d.Usage, "outerHTML")
+}
+
+templ managePlanDead(d *lib.AdminPageData) {
+	<div class="text-sm">
+		<h3 class="font-semibold text-slate-700 mb-2">No Active Plan</h3>
+		<div class="ml-2">
+			<div class="manage-plan-row">
+				<i>none active </i>
+			</div>
+		</div>
+	</div>
+}
+
+templ Invoices(d *lib.AdminPageData) {
+	<div class="text-sm">
+		@displayInvoices(d)
+	</div>
+}
+
+templ managePlanActive(d *lib.AdminPageData) {
+	<div class="text-sm">
+		<h3 class="font-semibold text-slate-700 mb-2">Manage Your Plan</h3>
+		<div class="ml-2">
+			<div class="manage-plan-row font-semibold plan-name">
+				{ d.UserPlan.Plan.DisplayName }
+			</div>
+			<div class="manage-plan-row">
+				<ul class="plan-feature-list">
+					for _, item := range d.UserPlan.Plan.Points {
+						<li>{ item }</li>
+					}
+				</ul>
+			</div>
+			<div class="manage-plan-row">
+				Pricing: { d.UserPlan.ActivePrice().String() }
+			</div>
+			<div class="manage-plan-row">
+				@renewalData(d)
+			</div>
+			<div class="manage-plan-row">
+				<div class="mb-2">
+					<h4>Actions</h4>
+				</div>
+				<div class="flex flex-wrap justify-around">
+					if d.UserPlan.Status.CanCancel() && !d.UserPlan.PendingCancel {
+						<div class="mb-2 grow min-w-28 max-w-64 border rounded p-3">
+							<div>
+								<form
+									hx-put={ "/admin/plans/active/cancel" }
+									hx-target="main#admin-main"
+									hx-swap="innerHTML"
+									hx-indicator=".plan-spinner,.plan-button"
+									class="m-0"
+									id="plans-active-cancel"
+								>
+									<input type="hidden" name="subscription_id" value={ d.UserPlan.SubscriptionId.String() }/>
+									<input type="hidden" name="plan_id" value={ d.UserPlan.Plan.Id.String() }/>
+									<button
+										class="rounded bg-slate-400 p-1 text-center text-white px-3 text-sm mb-1 responsive-button w-28 h-8 plan-button"
+										type="submit"
+									>
+										<span class="cancel-plan">Cancel</span>
+										<img
+											id="spinner-cancel"
+											class="button-spinner htmx-indicator w-3 h-3 plan-spinner"
+											src="/static/img/bars-scale-fade.svg"
+										/>
+									</button>
+								</form>
+							</div>
+							<div>
+								<span class="text-xs">
+									Use plan through current billing cycle, and stop further renewals.
+								</span>
+							</div>
+						</div>
+					} else if d.UserPlan.Status == infra.PlanStatus_Active && d.UserPlan.PendingCancel {
+						<div class="mb-2 grow min-w-28 max-w-64 border rounded p-3">
+							<div>
+								<form
+									hx-put={ "/admin/plans/active/resume" }
+									hx-target="main#admin-main"
+									hx-swap="innerHTML"
+									hx-indicator=".plan-spinner,.plan-button"
+									id="plans-active-resume"
+									class="m-0"
+								>
+									<input type="hidden" name="subscription_id" value={ d.UserPlan.SubscriptionId.String() }/>
+									<input type="hidden" name="plan_id" value={ d.UserPlan.Plan.Id.String() }/>
+									<button
+										class="rounded bg-sky-400 p-1 text-center text-white px-3 text-sm mb-1 w-28 h-8 responsive-button plan-button"
+										type="submit"
+									>
+										<span class="resume-plan">Resume plan</span>
+										<img
+											class="button-spinner htmx-indicator w-3 h-3 plan-spinner"
+											src="/static/img/bars-scale-fade.svg"
+										/>
+									</button>
+								</form>
+							</div>
+							<div>
+								<span class="text-xs">
+									Resume previously canceled plan; bill on the current expiration date.
+								</span>
+							</div>
+						</div>
+					}
+					<div class="mb-2 grow min-w-28 max-w-64 border rounded p-3">
+						<div>
+							<form
+								hx-delete={ "/admin/plans/active" }
+								hx-target="main#admin-main"
+								hx-swap="innerHTML"
+								hx-indicator=".plan-spinner,.plan-button"
+								hx-confirm="Are you sure you want to cancel your plan, and forfeit the remainder of the current billing cycle? This cannot be undone."
+								class="m-0"
+							>
+								<button
+									class="rounded bg-red-500 p-1 text-center text-white px-3 text-sm mb-1 w-28 h-8 responsive-button plan-button"
+									type="submit"
+								>
+									<span>Rage Quit</span>
+									<img
+										class="button-spinner htmx-indicator w-3 h-3 plan-spinner"
+										src="/static/img/bars-scale-fade.svg"
+									/>
+								</button>
+								<input type="hidden" name="subscription_id" value={ d.UserPlan.SubscriptionId.String() }/>
+								<input type="hidden" name="plan_id" value={ d.UserPlan.Plan.Id.String() }/>
+							</form>
+						</div>
+						<div>
+							<span class="text-xs">
+								Stop future billing and forfeit the remainder of the current billing cycle. 
+							</span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="p-1 mb-1">
+				@displayInvoices(d)
+			</div>
+		</div>
+	</div>
+}

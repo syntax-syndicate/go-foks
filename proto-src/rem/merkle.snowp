@@ -1,0 +1,80 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x920acc517377fda3;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct GetHistoricalRootsRes {
+    roots @0 : List(lib.MerkleRoot);
+    hashes @1 : List(lib.MerkleRootHash);
+}
+
+struct MerkleExistsRes {
+    epno @0 : lib.MerkleEpno;
+    signed @1 : Bool;
+}
+
+protocol MerkleQuery 
+    errors lib.Status 
+    argHeader lib.Header 
+    resHeader lib.Header @0xc0412aa6 {
+
+    lookup @0 (
+        hostID @0 : Option(lib.HostID),
+        key @1 : lib.MerkleTreeRFOutput,
+        signed @2 : Bool,
+        root @3 : Option(lib.MerkleEpno)
+    ) : MerkleLookupArg -> lib.MerklePathCompressed;
+
+    getHistoricalRoots @1 (
+        hostID @0 : Option(lib.HostID),
+        full @1 : List(lib.MerkleEpno),
+        hashes @2 : List(lib.MerkleEpno)
+    ) -> GetHistoricalRootsRes;
+
+    getCurrentRoot @2 (
+        hostID @0 : Option(lib.HostID)
+    ) -> lib.MerkleRoot;
+
+
+    getCurrentRootHash @3 (
+        hostID @0 : Option(lib.HostID)
+    ) -> lib.TreeRoot;
+
+    // lookup that a given key exists durably in the DB,
+    // no need to return the path (for internal usecases building
+    // the merkle tree, since no proof is provided). REturns the current
+    // epno, which will be an upper bound on the epno when the
+    // leaf first came into existence.
+    //
+    checkKeyExists @4 (
+        hostID @0 : Option(lib.HostID),
+        key @1 : lib.MerkleTreeRFOutput
+    ) -> MerkleExistsRes;
+
+    getCurrentRootSigned @5 (
+        hostID @0 : Option(lib.HostID)
+    ) -> lib.SignedMerkleRoot;
+
+    mLookup @6 (
+       hostID @0 : Option(lib.HostID),
+       keys @1 : List(lib.MerkleTreeRFOutput),
+       signed @2 : Bool,
+       root @3 : Option(lib.MerkleEpno) 
+    ) : MerkleMLookupArg -> lib.MerklePathsCompressed;
+
+    getCurrentRootSignedEpno @7 (
+       hostID @0 : Option(lib.HostID)
+    ) -> lib.MerkleEpno;
+
+    selectVHost @8 (
+        host @0 : lib.HostID
+    ) : MerkleSelectVHostArg;
+
+    // confirm that the given root is a valid root for the given host
+    confirmRoot @9 (
+        hostID @0 : lib.HostID,
+        root @1 : lib.TreeRoot
+    );
+}

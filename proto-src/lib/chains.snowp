@@ -1,0 +1,251 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xde1bfa1296f68185;
+
+struct TreeRoot {
+    epno @0 : MerkleEpno;
+    hash @1 : MerkleRootHash;
+}
+
+struct BaseChainer {
+    seqno @0 : Seqno;
+    prev @1 : Option(LinkHash);
+    root @2 : TreeRoot;
+    time @3 : Time;
+}
+
+struct HidingChainer {
+    base @0 : BaseChainer;
+    nextLocationCommitment @1 : TreeLocationCommitment;
+}
+
+struct FQEntity {
+    entity @0 : EntityID;
+    host @1 : HostID;
+}
+
+struct FQParty @0xefcb2f00daad7a7c {
+    party @0 : PartyID;
+    host @1 : HostID;
+}
+
+struct FQEntityFixed {
+    entity @0 : FixedEntityID;
+    host @1: HostID;
+}
+
+struct FQEntityInHostScope {
+    entity @0 : EntityID;
+    host @1 : Option(HostID);
+}
+
+enum RoleType {
+    NONE @0;
+    MEMBER @1;
+    ADMIN @2;
+    OWNER @3;
+}
+
+typedef VizLevel = Int;
+
+// r1 >= r2 iff (r1.t > r2.t || (r1.t == r2.t && r1.VizLevel >= r2.VizLevel)).
+// If r1 >= r2, then r1 should be able to see data at r2. Thus, an admin
+// at <2,0> should be able to read <0,0>, which is standard group material,
+// or <0,-10>, which is bot content. On the other hand, a member at <0,0> can't
+// read admin material at <2,0>, and a bot at <0,-10> can't read member material
+// at <0,0>.
+variant Role switch (t : RoleType) {
+    default: void;
+    case MEMBER @0: VizLevel; // The lower the level, the fewer secrets the member can see, can go negative
+}
+
+//
+// In the user context:
+//  - fqentity: the user's device or yubi key ID
+//  - dhkey: as above, the user's device or yubikey dhkey
+//  - subkey: in the case of yubikey, this is an EdDSA subkey used for authentication
+//
+struct UserMemberKeys {
+    hepkFp @0 : HEPKFingerprint;
+    subKey @1 : Option(EntityID);
+}
+
+// In the team context:
+//   - verifyKey : the PUK or PTK sign/verify key that is used to authenticate the user; always provided!
+//   - hepkFp : the fingerprint of the Hybrid Encryption public key PUK or PTK that we'll encrypt secrets for
+//   - gen: the generation of the above.
+//   - trkc: Team Removal Key Commitment; if the user is eventually removed from the team, 
+//      this allows the team admin to prove that removal occurred
+//
+// Note this should rotate every time PTK or PUK rotates, and the team's shared keys
+// should update too. 
+struct TeamMemberKeys {
+    verifyKey @0 : EntityID;
+    hepkFp @1 : HEPKFingerprint;
+    gen @2 : Generation;
+    trkc @3 : Option(KeyCommitment); 
+    tir @4 : Option(RationalRange); // if the member joining is a team, report the team index range on join.
+}
+
+enum MemberKeysType {
+    None @0;
+    User @1;
+    Team @2;
+}
+
+variant MemberKeys switch (t : MemberKeysType) {
+    case None : void;
+    case User @1 : UserMemberKeys;
+    case Team @2 : TeamMemberKeys;
+}
+
+struct MemberRole {
+    dstRole @0 : Role; // The role it will be in the team
+    member @1 : Member;
+}
+
+struct MemberRoleSeqno {
+    mr @0 : MemberRole;
+    seqno @1 : Seqno;
+    time @2 : Time; // when added
+}
+
+struct Member {
+    id @0 : FQEntityInHostScope;
+
+    // The role that identifies this member in its current team or PUK. NOT the role it will be in the team
+    // For devices joining a user, this role will be NONE. For users joining a TEAM, this will usually be
+    // OWNER. For teams joining other teams, this can really vary, but will likely be Member or Bot.
+    srcRole @1 : Role; 
+
+    keys @2 : MemberKeys;
+}
+
+struct SharedKey {
+    gen @0 : Generation;
+    role @1 : Role; // controls the visibility of these secrets
+    // Should be of type either PUKVerify or PTKVerify
+    verifyKey @2 : EntityID;
+    hepkFp @3 : HEPKFingerprint;
+}
+
+struct SharedKeyAndHEPK {
+    sk @0 : SharedKey;
+    hepk @1 : HEPK;
+}
+
+struct KeyOwner {
+    party @0 : PartyID;
+    srcRole @1 : Role;
+}
+
+struct GroupChangeSigner {
+    key @0 : EntityID; // For sigs on user chains, this is a device key. For team chains, a user or team key
+    keyOwner @1 : Option(KeyOwner); // For team chains, it's not obvious who the owner is, so we need to specify.
+}
+
+struct GroupChange @0x8fbf37f586b0bc6e {
+    chainer @0 : HidingChainer;
+    entity @1 : FQEntity;
+    signer @2 : GroupChangeSigner;
+    changes @3 : List(MemberRole);
+    sharedKeys @5 : List(SharedKey);
+    metadata @6 : List(ChangeMetadata);
+    locationVRFID @7: Option(LocationVRFID);
+}
+
+struct GenericLink @0xa23314d66e6e04f9 {
+    chainer @0 : HidingChainer;
+    entity @1 : FQEntity;
+    signer @2 : FQEntityInHostScope;
+    payload @3 : GenericLinkPayload;
+}
+
+enum LinkType {
+    GROUP_CHANGE @1;
+    GENERIC @2;
+}
+
+variant LinkInner switch (t : LinkType) @0xacf9066572a9e7de {
+    case GROUP_CHANGE @0 : GroupChange;
+    case GENERIC @1 : GenericLink;
+}
+
+typedef LinkInnerBlob = Future(LinkInner);
+
+enum LinkVersion {
+    V1 @1;
+}
+
+struct LinkOuterV1 @0xc2745284af617745 {
+    inner @0 : LinkInnerBlob; // Encoded LinkInner; note it may have fields we don't know about!
+    signatures @1 : List(Signature);
+}
+
+enum ChangeType {
+    DeviceName @0;
+    Username @1;
+    Eldest @2;
+    Teamname @3;
+    TeamIndexRange @4;
+}
+
+enum DeviceType {
+    Computer @0;
+    Mobile @1;
+    YubiKey @2;
+    Backup @3;
+}
+
+struct SharedKeySeed @0xa9998e7a59e8ae25 {
+    fqe  @0 : FQEntity;
+    gen  @1 : Generation;
+    role @2 : Role;
+    seed @3 : SecretSeed32;
+}
+
+struct SubkeySeed @0x9bfca0e8fc32288f {
+    parent @0 : EntityID;
+    subkey @1 : EntityID;
+    seed @2 : SecretSeed32;
+}
+
+struct EldestMetadata {
+    // In the future, we might have N different types of secret subchains for the user.
+    // This seed allows the user to hide the 0th link in each of these chains. From there,
+    // the regular i+1 hiding strategy is used. 
+    subchainTreeLocationSeedCommitment @0 : TreeLocationCommitment;
+}
+
+typedef Commitment = HMAC;
+
+variant ChangeMetadata switch (t : ChangeType) {
+    case DeviceName, Username, Teamname @0 : Commitment;
+    case Eldest @1 : EldestMetadata;
+    case TeamIndexRange @2 : RationalRange;
+}
+
+variant LinkOuter switch (v : LinkVersion) @0xed4cc0f7081732b6 {
+    case V1 @1 : LinkOuterV1;
+}
+
+variant GenericLinkPayload switch (t : ChainType) @0xfc82ed34909b2f4c {
+    case UserSettings @0 : UserSettingsLink;
+    case TeamMembership @1 : TeamMembershipLink;
+    default: void;
+}
+
+struct SharedKeyGen {
+    role @0 : Role;
+    gen @1 : Generation;
+}
+
+variant UserSettingsLink switch (t : UserSettingsType) @0x99dfb82e9d34cb59 {
+    case Passphrase @0 : PassphraseInfo;
+}
+
+struct RevokeInfo {
+    revoker @0 : EntityID;
+    chain @1 : BaseChainer;
+}

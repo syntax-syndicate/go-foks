@@ -1,0 +1,19 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xf3b6c91ea72697bc;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+protocol Ctl 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xb9b6958c {
+
+    // The agent will shutdown. In test, it will just stop.
+    // In MacOS production, it will be restarted by launchd.
+    shutdown @0 () -> Uint;
+
+    pingAgent @1 () -> Uint; // returns process id
+
+}

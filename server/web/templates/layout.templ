@@ -1,0 +1,29 @@
+package templates
+
+import "github.com/foks-proj/go-foks/server/web/lib"
+
+templ header(pd lib.PageDataer) {
+    <head>
+        <title>{ pd.GetHead().Title}</title>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="htmx-config" content={ "{\"inlineStyleNonce\":\"" + pd.GetHead().Nonce.StyleSrcElem + "\"}" } />
+        <link rel="stylesheet" href="/static/css/style.css" nonce={ pd.GetHead().Nonce.StyleSrcElem }/>
+        <script src="/static/js/htmx.js" nonce={ pd.GetHead().Nonce.ScriptSrc } />
+        <script src="/static/js/foks.js" nonce={ pd.GetHead().Nonce.ScriptSrc } />
+        if pd.GetCSRFToken() != nil { 
+            <meta name="csrf-token" content={pd.GetCSRFToken().String()} />
+        }
+    </head>
+}
+
+templ Layout(body templ.Component, pd lib.PageDataer) {
+    <html lang="en" class="h-full">
+	  @header(pd)
+	  <body class="h-full">
+       <div class="max-w-6xl mx-auto">
+		@body
+       </div>
+	 </body>
+    </html>
+}

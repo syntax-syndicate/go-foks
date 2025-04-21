@@ -1,0 +1,24 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xdda9a848fdca267a;
+
+struct PpePassphraseBox { 
+    box @0 : Box;
+}
+
+struct PpePUKBox {
+    box @ 0 : SecretBox;
+    pukGen @ 1 : Generation;
+    pukRole @ 2 : Role;
+}
+
+struct PpeParcel {
+    skwkBox @0 : lib.SecretBox;
+    ppGen @1 : lib.PassphraseGeneration;
+    passphraseBox @2 : PpePassphraseBox;
+    pukBox @3 : Option(lib.PpePUKBox);
+    salt @4 : lib.PassphraseSalt;
+    sv @5 : lib.StretchVersion;
+    verifyKey @6 : lib.EntityID; 
+}

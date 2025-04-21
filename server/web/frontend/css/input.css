@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.admin-panel-border {
+    @apply rounded border border-slate-400;
+}
+
+.admin-leftbar-tool {
+    @apply admin-panel-border;
+    @apply p-3 ml-0 sm:mr-2 mb-2 mt-0 text-sm;
+}
+
+.responsive-inline-button.htmx-request {
+    display: none;
+}
+
+button.responsive-button.htmx-request span {
+    max-height: 0;
+    overflow: hidden;
+    display: none;
+}
+
+.button-spinner.htmx-indicator {
+    display: none;
+}
+
+button.responsive-button.htmx-request {
+    cursor: not-allowed;
+    pointer-events: none; /* To actually disable clicking */
+    opacity: 0.5;
+}
+
+img.button-spinner.htmx-indicator.htmx-request {
+    display: inline-block;
+}
+
+button.plan-manage, button.plan-downgrade {
+    @apply opacity-90;
+}
+
+ul.plan-feature-list {
+    list-style-type: none;
+}
+
+ul.plan-feature-list li::before {
+    content: "🦊";
+    margin-right: 0.5em;
+}
+
+button.disabled {
+    @apply opacity-20;
+}
+
+.manage-plan-row {
+    @apply border-b p-1 mb-1;
+}
+
+.vhost-details-row {
+    @apply border-b p-1 mb-1 border-slate-300;
+}
+
+.vhost-detail-cell {
+    @apply border-b border-slate-300 pb-1;
+}
+
+.is-invalid {
+    @apply border-red-500;
+}
+
+input:invalid {
+    box-shadow: 0 0 5px 1px red;
+}
+
+button:disabled {
+    @apply opacity-50;
+}
+
+div.big-error {
+    @apply bg-red-100 border border-red-500 p-2 text-xs rounded;
+}
+
+div.collapsible div.collapse-target {
+    max-height: 0;
+    overflow: hidden;
+}
+
+div.collapsible div.collapse-target.open {
+    max-height: 100rem;
+}
+
+div.invite-disabled span {
+    @apply opacity-50;
+}

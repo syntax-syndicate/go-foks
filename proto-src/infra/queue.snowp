@@ -1,0 +1,30 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xe1af4bfb4fb0d5d6;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+enum QueueID {
+    Kex @1;
+    OAuth2 @2;
+}
+
+typedef QueueLaneID = Blob(18);
+
+protocol queue errors lib.Status @0x931b5f1a {
+
+    enqueue @0 (
+        queueId @0 : QueueID,
+        laneId @1 : QueueLaneID,
+        msg @2 : Blob
+    );
+
+    dequeue @1 (
+        queueId @0 : QueueID,
+        laneId @1 : QueueLaneID,
+        wait @2 : lib.DurationMilli
+    ) -> Blob;
+
+}
+

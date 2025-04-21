@@ -1,0 +1,193 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xaeafdc74b988e257;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct ChallengePayload @0x92bb9122e9d5ae59 {
+    hmacKeyID @0 : lib.HMACKeyID;
+    entityID @1 : lib.EntityID;
+    hostID @2 : lib.HostID;
+    rand @3 : lib.Random16;
+    time @4 : lib.Time;
+}
+
+enum NameType {
+    User @1;
+    Team @2;
+}
+
+struct Challenge {
+    payload @0 : ChallengePayload;
+    mac @1 : lib.HMAC;
+}
+
+struct LoginRes {
+    ppGen @0 : lib.PassphraseGeneration;
+    skwkBox @1 : lib.SecretBox;
+    passphraseBox @2 : lib.PpePassphraseBox;
+}
+
+struct ReserveNameRes {
+    tok @0 : lib.ReservationToken;
+    seq @1 : lib.NameSeqno;
+    etime @2 : lib.Time; // when the reservation expires
+}
+
+struct NameCommitment @0xe37b1fcfba972353 {
+    name @0 : lib.Name; // we commit to the normalized string; unicode is just sugar that is onl sometimes displayed
+    seq @1 : lib.NameSeqno;
+}
+
+struct LookupUserRes {
+    fqu @0 : lib.FQUser;
+    username @1 : lib.Name;
+    usernameUtf8 @2 : lib.NameUtf8;
+    role @3 : lib.Role;
+    yubiPQHint @4 : Option(lib.YubiSlotAndPQKeyID);
+}
+
+struct OAuth2PollRes {
+    toks @0 : lib.OAuth2TokenSet;
+    res @1 : ReserveNameRes;
+}
+
+variant RegSSOArgs switch (t : lib.SSOProtocolType) {
+    case None : void;
+    case Oauth2 @1: RegSSOArgsOAuth2;
+}
+
+struct RegSSOArgsOAuth2 {
+    id @0 : lib.OAuth2SessionID;
+    sig @1 : lib.OAuth2IDTokenBinding;
+}
+
+struct SignupRes {
+
+    
+}
+
+protocol Reg 
+    errors lib.Status 
+    argHeader lib.Header 
+    resHeader lib.Header @0xf7ab85f3 {
+
+    reserveUsername @0 (
+        n @0 : lib.Name
+    ) -> ReserveNameRes;
+
+    getClientCertChain @1 (
+        uid @0 : lib.UID,
+        key @1 : lib.EntityID
+    ) -> List(Blob);
+
+    signup @2 (
+        usernameUtf8 @0 : lib.NameUtf8,
+        rur @1 : ReserveNameRes,
+        link @2 : lib.LinkOuter,
+        pukBox @3 : lib.SharedKeyBoxSet,
+        usernameCommitmentKey @4: lib.RandomCommitmentKey,
+        dlnck @5 : DeviceLabelNameAndCommitmentKey,
+        nextTreeLocation @6 : lib.TreeLocation,
+        inviteCode @7: InviteCode,
+        email @8 : lib.Email,
+        subkeyBox @9 : Option(lib.Box),
+        passphrase @10 : Option(SetPassphraseArg),
+        subchainTreeLocationSeed @11 : lib.TreeLocation,
+        selfToken @12 : lib.PermissionToken,
+        hepks @13 : lib.HEPKSet,
+        yubiPQhint @14 : Option(lib.YubiSlotAndPQKeyID),
+        sso @15 : RegSSOArgs
+    );
+
+    getHostID @3 () -> lib.HostID;
+
+    getLoginChallenge @4 (
+        uid @0 : lib.UID
+    ) -> Challenge;
+
+    login @5 (
+        uid @0 : lib.UID,
+        challenge @1 : Challenge,
+        signature @2 : lib.Signature
+    ) -> LoginRes;
+
+    getUIDLookupChallege @6 (
+        entityID @0: lib.EntityID
+    ) -> Challenge;
+
+    lookupUIDByDevice @7 (
+        entityID @0 : lib.EntityID,
+        challenge @1 : Challenge,
+        signature @2 : lib.Signature
+    ) -> lib.LookupUserRes;
+
+    checkInviteCode @8 (
+        inviteCode @0 : InviteCode
+    ) -> void;
+
+    joinWaitList @9 (
+        email @0 : lib.Email
+    ) -> lib.WaitListID;
+
+    checkNameExists @10 (
+        name @0 : lib.Name
+     ) -> void; 
+
+    loadUserChain @11 (
+        a @0 : LoadUserChainArg
+    ) : RegLoadUserChainArg -> UserChain;
+
+    getSubkeyBoxChallenge @12 (
+        parent @0 : lib.EntityID
+    ) -> Challenge;
+
+    loadSubkeyBox @13 (
+        parent @0 : lib.EntityID,
+        challenge @1 : Challenge,
+        signature @2 : lib.Signature
+    ) -> lib.Box;
+
+    stretchVersion @14 () : RegStretchVersionArg -> lib.StretchVersion;
+
+    selectVHost @15 (
+        host @0 : lib.HostID
+    ) : RegSelectVhost;
+
+    resolveUsername @16 (
+        a @0 : ResolveUsernameArg 
+    ) : RegResolveUsernameArg -> lib.UID;
+
+    getServerConfig @17 () -> lib.RegServerConfig;
+
+    initOAuth2Session @18 (
+        id @0 : lib.OAuth2SessionID,
+        pkceVerifier @1 : lib.OAuth2PKCEVerifier,
+        nonce @2 : lib.OAuth2Nonce,
+        uid @3 : Option(lib.UID)
+    ) -> lib.URLString;
+
+    pollOAuth2SessionCompletion @19 (
+        id @0 : lib.OAuth2SessionID,
+        wait @1 : lib.DurationMilli,
+        forLogin @2 : Bool // for login, no reservations needed
+    ) -> OAuth2PollRes;
+
+    ssoLogin @20 (
+        uid @0 : lib.UID,
+        args @1 : RegSSOArgs 
+    );
+
+    probeKeyExists @21 (
+        uid @0 : lib.UID,
+        devID @1 : lib.DeviceID,
+        selfTok @2 : lib.PermissionToken
+    );
+
+    // This host might have an associated vhost management host.
+    // If so, we'll return non-error here, with an address.
+    // Otherwise, NotFoundError
+    getVHostMgmtHost @22() -> lib.TCPAddr;
+
+}

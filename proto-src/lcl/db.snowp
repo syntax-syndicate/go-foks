@@ -1,0 +1,119 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xc23062c6315826ff;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef DbVal = Blob;
+
+enum DataType {
+    None @0;
+    YubiKey @1;
+    TreeLocation @3;
+    MerkleRootByHash @4;
+    MerkleRootHashByEpno @5;
+    MerkleLatestEpno @6;
+    Hostchain @7;
+    SharedKeyCacheEntry @8;
+    UserSigchainState @9;
+    SubkeyBox @10;
+    User @11;
+    GenericChainState @12;
+    TeamChainState @13;
+    UsernameReservation @14;
+    UsernameLookup @15;
+
+    KVRealm @65;
+    KVNSRoot @66;
+    KVDir @67;
+    KVDirent @68;
+    KVFileHeader @69;
+    KVFileChunk @70;
+    KVNSName @71;
+    KVSymlink @72;
+    KVGitRefSet @73;
+}
+
+typedef ScopeLabel = Blob;
+typedef ScopeID = Uint;
+
+struct UserSigchainState {
+    tail @0 : lib.HidingChainer;
+    lastHash @1 : lib.LinkHash;
+    username @2 : lib.NameAndSeqnoBundle;
+    puks @3 : List(lib.SharedKey); // Sorted first by role, then by gen
+    devices @4 : List(lib.DeviceInfo);
+    pukGens @5: List(lib.SharedKeyGen);
+    sctlsc @7: lib.TreeLocationCommitment; // Subchain Tree Location Seed Commitment
+    merkleLeaves @8 : List(lib.MerkleLeaf); // Verified leaf in tree for each link
+    hepks @9 : lib.HEPKSet;
+    stalePUKs @10 : List(lib.Role); // PUKs that need to be rotated but weren't due to a self-revoke
+}
+
+struct UserMetadataAndSigchainState {
+    fqu @0 : lib.FQUser;
+    state @1 : UserSigchainState;
+    hostname @2 : lib.Hostname;
+}
+
+struct RoleAndGenus @0xfaeb1f09bcded289 {
+    role @0 : lib.Role;
+    genus @1 : lib.KeyGenus;
+}
+
+struct PUKBoxDBKey @0xf3b0c875bbfcdc03 {
+    rg @0 : RoleAndGenus;
+    eid @1 : lib.EntityID;
+}
+
+struct GenericChainState {
+    tail @0 : lib.HidingChainer;
+    lastHash @1 : lib.LinkHash;
+    payload @2 : GenericChainStatePayload;
+}
+
+struct UserSettingsChainPayload {
+    passphrase @0 : Option(lib.PassphraseInfo);
+}
+
+struct TeamMembershipChainPayload {
+    teams @0 : List(lib.TeamMembershipLink);
+}
+
+variant GenericChainStatePayload switch (t : lib.ChainType) {
+    case UserSettings @2 : UserSettingsChainPayload;
+    case TeamMembership @4 : TeamMembershipChainPayload;
+}
+
+struct TeamChainIndex @0xf84d4b49bf61d869 {
+    team @0 : lib.FQTeam;
+    asLoader @1 : lib.FQParty; // Can load the same team as 2 different parties
+    srcRole @2 : lib.Role; // The source role of the asLoader.
+    priv @3 : Bool; // Load private keys and private components
+}
+
+struct SharedKeyWithInfo {
+    sk @0 : lib.SharedKey;
+    pi @1 : lib.ProvisionInfo;
+    ri @2 : Option(lib.RevokeInfo); // if revoked, should be true of all keys < current gen
+}
+
+// Public state for the team, no PTK boxes or seed chain
+struct TeamChainState {
+    fqt @0 : lib.FQTeam;
+    tail @1 : lib.HidingChainer;
+    lastHash @2 : lib.LinkHash;
+    name @3 : lib.NameAndSeqnoBundle;
+    ptks @4 : List(SharedKeyWithInfo); // Sorted by gen, and then by role, public keys
+    members @5 : List(lib.MemberRoleSeqno); // Sorted by ID, and then by role
+    sctlsc @6 : lib.TreeLocationCommitment; // Subchain Tree Location Seed Commitment
+    merkleLeaves @7 : List(lib.MerkleLeaf); // Verified leaf in tree for each link
+    privateKeys @8 : List(lib.SharedKeyParcel); // One for each role
+    removalKey @9 : Option(lib.TeamRemovalKeyBox);
+    remoteViewTokens @10 : List(lib.TeamRemoteMemberViewTokenInner); // One for each remote member
+    hepks @11 : lib.HEPKSet;
+    tir @12 : lib.RationalRange; // TeamIndexRange
+    historicalSenders @13 : List(lib.SenderPair); // Senders we have used for unboxing in the past
+}
+

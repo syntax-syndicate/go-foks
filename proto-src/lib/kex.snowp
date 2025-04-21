@@ -1,0 +1,11 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x8b467dabb2a93eed;
+
+typedef KexSeqNo = Uint;
+typedef KexSecret @0xd11db788412b370b = Blob(16);
+typedef KexSessionID = Blob(32);
+
+// Kex High-Entropy seed Phrase (125 bits)
+typedef KexHESP = List(Text); 

@@ -1,0 +1,41 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xbccfe8d5b24f22f0;
+
+typedef GitRepo = Text;
+
+// In immutable ID that we can use locally when storing state,
+// that won't be confused by remote renames on the local checkout.
+struct GitRemoteRepoID {
+    host @0 : HostID;
+    dir @1 : DirID;
+}
+
+enum GitProtoType {
+    Foks @1;
+}
+
+typedef GitURLString = Text;
+
+// This is a lot like a KVGetRes, but specialized
+struct GitRefBoxed {
+    de @0 : KVDirent;
+    sfb @1 : SmallFileBox;
+}
+
+struct GitRef {
+    name @0 : KVPath;
+    value @1 : Text;
+}
+
+struct GitRefBoxedSet {
+    dirVersion @0 : KVVersion;
+    refs @1 : List(GitRefBoxed);
+}
+
+struct GitURL {
+    proto @0 : GitProtoType;
+    fqp @1 : FQPartyParsed;
+    repo @2 : GitRepo;
+}

@@ -1,0 +1,90 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xfa2537912a285d23;
+
+enum HostchainChangeType {
+    None @0;
+    Revoke @1;
+    Key @2;
+    TLSCA @3;
+}
+
+struct HostTLSCA {
+    id @0 : HostTLSCAID;
+    cert @1 : Blob;
+}
+
+variant HostchainChangeItem switch (t : HostchainChangeType) @0xf653d2ca359b0624 {
+    case Revoke @1 : EntityID;
+    case Key @2: EntityID;
+    case TLSCA @3: HostTLSCA;
+}
+
+struct HostchainChange @0xfac18a7a1f30f887 {
+    chainer @0 : BaseChainer;
+    host @1 : HostID;
+    signer @2: HostID;
+    changes @3 : List(HostchainChangeItem);
+}
+
+enum HostchainLinkType {
+    Change @1;
+    Discovery @2;
+}
+
+variant HostchainLinkInner switch (t : HostchainLinkType) @0xc2fc3a01ef13daa8 {
+    case Change @1: HostchainChange;
+}
+
+enum HostchainLinkVersion {
+    V1 @1;
+}
+
+struct HostchainLinkOuterV1 @0xa23ba3620d758f7a {
+    inner @0 : Blob;
+    signatures @1 : List(Signature);
+}
+
+variant HostchainLinkOuter switch (v : HostchainLinkVersion) @0x8d87ac224920355c {
+    case V1 @1: HostchainLinkOuterV1;
+}
+
+struct HostKeyPrivateStorageV1 {
+    type @0 : EntityType;
+    time @1 : Time;
+    seed @2 : Ed25519SecretKey;
+}
+
+enum HostKeyPrivateStorageVersion {
+    V1 @1;
+}
+
+variant HostKeyPrivateStorage switch (v : HostKeyPrivateStorageVersion) {
+    case V1 @1 : HostKeyPrivateStorageV1;
+}
+
+struct KeyAtSeqno {
+    seqno @0 : Seqno;
+    eid @1 : EntityID;
+}
+
+struct HostTLSCAAtSeqno {
+    seqno @0 : Seqno;
+    ca @1 : HostTLSCA;
+}
+
+struct HostchainState {
+    seqno @0 : Seqno;
+    host @1 : HostID;
+    time @2 : Time;
+    tail @3 : LinkHash;
+    keys @4 : List(KeyAtSeqno);
+    cas @5 : List(HostTLSCAAtSeqno);
+    addr @6 : TCPAddr; // Last-known address for this hostID, it can change.
+}
+
+struct HostchainTail {
+    seqno @0 : Seqno;
+    hash @1 : LinkHash;
+}

@@ -1,0 +1,167 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x90b6fad00b315751;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+enum KVAuthType {
+    User @0;
+    Team @1;
+}
+
+variant KVAuth switch (t : KVAuthType) {
+    case Team @1: TeamVOBearerToken;
+}
+
+struct KVReqHeader {
+    auth @0 : KVAuth;
+    precondition @1 : Option(lib.PathVersionVector);
+}
+
+struct KVNameMACAtDirVersion{
+    dirVers @0 : lib.KVVersion;
+    mac @1 : lib.HMAC;
+}
+
+// To accommodate directory rotations (which might be slow for big directories),
+// we sometimes need to encrypt names twice, once for the old encryption key
+// and again for the new.
+struct KVNodePathMultiple @0xa191f889d8296b64 {
+    parentDir @0 : lib.DirID;
+    names @1 : List(KVNameMACAtDirVersion);
+}
+
+enum FollowBehavior {
+    None @0;
+    DirOnly @1;
+    Any @2;
+}
+
+variant KVGetNodeRes switch (t : lib.KVNodeType) {
+    case File @0 : lib.LargeFileMetadata;
+    case SmallFile @2 : lib.SmallFileBox;
+    case Symlink @3 : lib.SmallFileBox;
+    case Dir @4 : lib.KVDirPair;
+}
+
+struct KVGetRes {
+    de @0 : lib.KVDirent;
+    data @1 : Option(KVGetNodeRes);
+}
+
+struct GetEncryptedChunkRes {
+    chunk @0 : lib.Chunk;
+    offset @1 : lib.Offset; // Might be less than requested if the offset wasn't aligned
+    final @2 : Bool;
+}
+
+struct KVListOpts {
+    start @0 : lib.KVListPagination;
+    num @1 : Uint;
+    loadSmallFiles @2 : Bool;
+}
+
+struct KVListRes {
+    ents @0 : List(lib.KVDirent);
+    final @1 : Bool;
+    extEnts @2: List(lib.KVExtendedDirent);
+}
+
+typedef LockID = Blob(16);
+
+struct KVLock {
+    idp @0 : lib.KVDirentIDPair;
+    lockID @1 : LockID;
+}
+
+protocol KVStore 
+    errors lib.Status 
+    argHeader lib.Header 
+    resHeader lib.Header @0x8ee37b6b {
+
+    kvMkdir @0 (
+        hdr @0 : KVReqHeader,
+        dir @1 : lib.KVDir
+    );
+
+    kvPut @1 (
+        hdr @0 : KVReqHeader,
+        dirents @1 : List(lib.KVDirent)
+    );
+
+    kvPutRoot @2 (
+        auth @0 : KVAuth,
+        root @1 : lib.KVRoot
+    );
+
+    kvFileUploadInit @3 (
+        auth @0 : KVAuth,
+        fileID @1 : lib.FileID,
+        md @2 : lib.LargeFileMetadata,
+        chunk @3 : lib.UploadChunk
+    );
+
+    kvFileUploadChunk @4 (
+        auth @0 : KVAuth,
+        fileID @1 : lib.FileID,
+        chunk @2 : lib.UploadChunk
+    );
+
+    kvPutSmallFileOrSymlink @7 (
+        auth @0 : KVAuth,
+        id @1 : lib.KVNodeID, // can work for either a small file OR a symlink
+        sfb @2 : lib.SmallFileBox
+    );
+
+    kvGetRoot @8 (
+        auth @0 : KVAuth
+    ) -> lib.KVRoot;
+
+    kvGet @9 (
+        hdr @0 : KVReqHeader,
+        path @1 : KVNodePathMultiple,
+        follow @2 : FollowBehavior // follow the link and load what it points to. Will get a header in the case of a large file
+    ) -> KVGetRes;
+
+    kvGetNode @10 (
+        auth @0 : KVAuth,
+        id @1 : lib.KVNodeID
+    ) -> KVGetNodeRes;
+
+    kvGetEncryptedChunk @11 (
+        auth @0 : KVAuth,
+        id @1 : lib.FileID,
+        offset @2 : lib.Offset
+    ) -> GetEncryptedChunkRes;
+
+    kvGetDir @12 (
+        auth @0 : KVAuth,
+        id @1 : lib.DirID
+    ) -> lib.KVDirPair;
+
+    kvCacheCheck @13 (
+        req @0 : KVReqHeader
+    );
+
+    kvList @14 (
+        auth @0 : KVAuth,
+        dir @1 : lib.DirID,
+        opts @2 : KVListOpts
+    ) -> KVListRes;
+
+    kvLockAcquire @15 (
+        auth @0 : KVAuth,
+        lock @1 : KVLock,
+        timeout @2 : lib.DurationMilli
+    );
+
+    kvLockRelease @16 (
+        auth @0 : KVAuth,
+        lock @1 : KVLock
+    );
+
+    kvUsage @17 (
+        auth @0 : KVAuth
+    ) -> lib.KVUsage;
+}

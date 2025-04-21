@@ -1,0 +1,29 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xfa46fde4dcc6af3c;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+// List of HESP-style tokens
+typedef BackupHESP = List(Text);
+
+// The above, but flattened with spaces between fields
+typedef BackupHESPString = Text;
+
+protocol Backup 
+    errors lib.Status 
+    argHeader Header 
+    resHeader Header @0xf01cb7eb {
+
+    // Create a new backup key
+    backupNew @0 (
+        role @0 : lib.Role
+    ) -> BackupHESP;
+
+    backupLoadPutHESP @1 (
+        sessionId @0 : lib.UISessionID,
+        hesp @1 : BackupHESP
+    );
+
+}

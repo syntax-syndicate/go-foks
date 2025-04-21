@@ -1,0 +1,58 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xe1778ad0b037a76b;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct KexSessionAndHESP {
+    sessionId @0 : lib.UISessionID;
+    hesp @1 : lib.KexHESP;
+}
+
+protocol DeviceAssist 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xbd6aaf3b {
+
+    assistInit @0 (
+        id @0 : lib.UISessionID
+    ) -> lib.UserInfo;
+
+    assistStartKex @1 (
+        id @0 : lib.UISessionID
+    ) -> lib.KexHESP;
+
+    assistGotKexInput @2 (
+        k @0 : KexSessionAndHESP
+    );
+
+    assistKexCancelInput @3 (
+        id @0 : lib.UISessionID
+    );
+
+    assistWaitForKexComplete @4 (
+        id @0 : lib.UISessionID
+    );
+
+}
+
+struct ActiveDeviceInfo {
+    di @0 : lib.DeviceInfo;
+    active @1 : Bool;
+    unlocked @2 : Bool;
+}
+
+protocol Device 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xc35b771b { 
+
+    // Give a yubikey, self-provision the current device into a
+    // standard device-based key.
+    selfProvision @1 (
+        role @0 : lib.Role,
+        dln @1 : lib.DeviceLabelAndName
+    );
+
+}

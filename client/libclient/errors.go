@@ -1,0 +1,25 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+package libclient
+
+import (
+	"errors"
+
+	"github.com/foks-proj/go-foks/lib/core"
+)
+
+func ErrToStringCLI(e error) string {
+	switch {
+	case e == nil:
+		return ""
+	case core.IsSSOAuthError(e):
+		return "your IdP has logged you out; please log in again via `foks sso login`"
+	case errors.Is(e, core.YubiDefaultPINError{}):
+		return "default YubiKey PIN is not allowed; set one via `foks yubi set-pin`"
+	case errors.Is(e, core.YubiPINRequredError{}):
+		return "PIN needed to unlock YubiKey; supply PIN via `foks yubi unlock --prompt-pin`"
+	default:
+		return e.Error()
+	}
+}

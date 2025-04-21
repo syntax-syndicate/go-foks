@@ -1,0 +1,24 @@
+package templates
+
+import (
+	"github.com/foks-proj/go-foks/lib/core"
+	"github.com/foks-proj/go-foks/server/web/lib"
+)
+
+func prevSel(r lib.FindRowRes) string {
+	if len(r.Prev) > 0 {
+		return r.Prev.CSSId()
+	}
+	return core.Sel(r.Mine, "mine-", "theirs-") + "0"
+}
+
+templ Claim(r lib.FindRowRes, u *lib.UsageData) {
+    <div hx-swap-oob={ "afterend: form#form-"+prevSel(r)}>
+	@usageRow(
+		r.Row,
+		r.Mine,
+		false,
+	)
+    </div>
+    @usagePill(u, "outerHTML")
+}

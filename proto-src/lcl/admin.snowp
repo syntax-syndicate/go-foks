@@ -1,0 +1,19 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xf38a227ff26cdd0f;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+protocol Admin 
+    errors lib.Status 
+    argHeader Header 
+    resHeader Header @0xa0a81e0b {
+
+    webAdminPanelLink @0 () -> lib.URLString;
+
+    checkLink @1 (
+        url @0 : lib.URLString
+    );
+
+}

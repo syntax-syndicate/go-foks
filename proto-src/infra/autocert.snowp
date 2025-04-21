@@ -1,0 +1,25 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x8863164de28b02c6;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef KVShardID = Uint;
+
+struct AutocertPackage {
+    hostname @0 : lib.Hostname;
+    hostid @1 : lib.HostID;
+    styp @2 : lib.ServerType;
+    isVanity @3 : Bool;
+}
+
+protocol Autocert errors lib.Status @0xb9515d98 {
+
+    doAutocert @0 (
+        pkg @0 : AutocertPackage,
+        waitFor @1 : lib.DurationMilli
+    );
+
+    poke @1 () : AutocertPokeArg;
+}

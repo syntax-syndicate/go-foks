@@ -1,0 +1,59 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x9f9c51316a495d5d;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+enum NetworkConditionsType {
+    Clear @0;
+    Catastrophic @1;
+    Cloudy @2;
+}
+
+variant NetworkConditions switch (t : NetworkConditionsType) {
+    default: void;
+    case Cloudy @2 : Uint;
+}
+
+protocol Test 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0x8a326fcf {
+
+    // Only works in testing, way too dangerous for prod.
+    // Might eventually be folded into revoke. Or maybe we 
+    // need a testing protocol here. Operates on the currently
+    // active user.
+    deleteMacOSKeychainItem @0 ();
+
+    // Gets the location of the noise file for the currently active user.
+    getNoiseFile @1 () -> Text;
+
+    // Clear out various elements cached in user state
+    clearUserState @2 ();
+
+    // Trigger background user-cleaning job, but outside of the BG tester loop.
+    // Not protected with a lock and might race the actual bg job. Test only.
+    testTriggerBgUserJob @3 ();
+
+    // read contents of secret store
+    loadSecretStore @4 () -> SecretStore;
+
+    setFakeTeamIndexRange @5 (
+        team @0 : lib.FQTeam,
+        tir @1 : lib.RationalRange 
+    );
+
+    setNetworkConditions @6 (
+        nc @0 : NetworkConditions
+    );
+
+    getUnlockedSKMWK@7 () -> UnlockedSKMWK;
+}
+
+protocol TestLibs errors lib.Status @0xb9330a29 {
+    fast @0 ( x @0 : Int ) -> Int;
+    slow @1 ( x @0 : Int, wait @1 : lib.DurationMilli ) -> Int;
+    disconnect @2 ();
+}

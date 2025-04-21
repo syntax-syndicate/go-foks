@@ -1,0 +1,88 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xcefba815a326a91e;
+
+typedef YubiCardName = Text; // The card name supplied by the manufacturer.
+typedef YubiSerial = Uint;   // The serial number supplied by the manufacturer
+typedef YubiSlot = Uint;     // The "slot" our key resides at.
+
+typedef YubiPIN = Text;
+typedef YubiPUK = Text;
+typedef YubiManagementKey = Blob(24);
+
+enum ManagementKeyState {
+    None @0;
+    Default @1;
+    PINRetrieved @2; // Stored with PIN on key and successfully retrieved
+    ShouldTryPIN @3;
+    Unknown @4;
+}
+
+struct YubiCardID {
+    name @0 : YubiCardName;
+    serial @1 : YubiSerial;
+}
+
+struct YubiCardInfo {
+    id @0 : YubiCardID;
+    keys @1 : List(YubiSlotAndKeyID);
+    emptySlots @2: List(YubiSlot);
+    selected @3 : List(YubiSlotAndKeyID); // KeyID == nil for empty slot
+    mks @4 : ManagementKeyState; // Management key state
+}
+
+struct YubiSlotAndKeyID {
+    slot @0 : YubiSlot;
+    id @1 : YubiID;
+}
+
+struct YubiKeyInfo {
+    card @0 : YubiCardID;
+    key @1 : YubiSlotAndKeyID;
+}
+
+struct YubiSlotAndPQKeyID {
+    slot @0 : YubiSlot;
+    id @1 : YubiPQKeyID;
+}
+
+struct YubiKeyInfoPQ {
+    card @0 : YubiCardID;
+    key @1 : YubiSlotAndPQKeyID;
+}
+
+struct YubiKeyInfoHybrid {
+    card @0 : YubiCardID;
+    key @1 : YubiSlotAndKeyID;
+    pqKey @2 : YubiSlotAndPQKeyID;
+}
+
+enum YubiIndexType {
+    None @0;
+    Empty @1;
+    Reuse @2;
+}
+
+variant YubiIndex switch (t : YubiIndexType) {
+    case Empty @1: Uint;
+    case Reuse @2: Uint;
+    default: void;
+}
+
+struct YubiSerialSlotHost {
+    serial @0 : YubiSerial;
+    slot   @1 : YubiSlot;
+    host   @2 : TCPAddr;
+}
+
+struct YubiSerialSlot {
+    serial @0 : YubiSerial;
+    slot   @1 : YubiSlot;
+}
+
+// The Yubi Post-Quantum Key ID is a 32-byte blob that is derived from a 
+// standard ECDSA g^x public key, but exposed to the server in such a way that
+// even a quantum computer can't compute x. This is achieved simply via
+// one-way function, like SHA2.
+typedef YubiPQKeyID = Blob(32); 

@@ -1,0 +1,62 @@
+package templates
+
+import (
+	proto "github.com/foks-proj/go-foks/proto/lib"
+	"github.com/foks-proj/go-foks/server/web/lib"
+)
+
+templ code() {
+	<div class="m-2 p-2 bg-sky-700 text-white max-w-xs font-mono">
+		{ children... }
+	</div>
+}
+
+templ user(u *lib.User, showHost bool) {
+	<span class="">
+		<span class="text-teal-500" id="username">
+			{ u.Name.String() }
+		</span>
+		if showHost && u.Host != nil {
+			<span class="mx-0.5">
+				{ "@" }
+				<span class="ml-0.5 text-slate-800">{ u.Host.Name.String() }</span>
+			</span>
+		}
+	</span>
+}
+
+templ topBar(u *lib.User, typ proto.HostType) {
+	<div class="p-3 mx-0 mt-2 mb-3 text-sm grid sm:grid-cols-2 xs:grid-cols-1 admin-panel-border" id="page-title">
+		<div>
+			<h1 class="font-bold">
+				FOKS Control Panel
+				<span class="text-xs font-medium text-slate-500" id="page-subtitle">
+					switch typ {
+						case proto.HostType_BigTop:
+							Team and Quota Management
+						case proto.HostType_VHostManagement:
+							Virtual Host Management
+						default:
+							{ "🦊" }
+					}
+				</span>
+			</h1>
+		</div>
+		<div class="sm:text-right">
+			@user(u, true)
+		</div>
+	</div>
+}
+
+templ leftColPill(id string, swap string) {
+	<div class="admin-leftbar-tool" id={ id } hx-swap-oob={ swap }>
+		{ children... }
+	</div>
+}
+
+templ errorDiv() {
+	<div id="error-town" class="hidden"></div>
+}
+
+templ Toast() {
+}

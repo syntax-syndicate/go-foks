@@ -1,0 +1,88 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xeaade9cf3f511a36;
+
+enum TeamMembershipLinkState {
+    None @0;
+    Requested @1;
+    Approved @2;
+    Removed @3;
+}
+
+typedef KeyCommitment = StdHash;
+
+struct RoleAndSeqno {
+    role @0 : Role;
+    seqno @1 : Seqno;
+}
+
+struct TeamMembershipApprovedDetails {
+    dst @0 : RoleAndSeqno;
+    keyComm @1 : KeyCommitment;
+}
+
+variant TeamMembershipDetails switch (t : TeamMembershipLinkState) {
+    case Approved @1 : TeamMembershipApprovedDetails;
+    default: void;
+}
+
+struct TeamMembershipLink {
+    team @0 : FQTeam;
+    srcRole @1 : Role;
+    state @2 : TeamMembershipDetails;
+}
+
+struct FQTeam {
+    team @0 : TeamID;
+    Host @1 : HostID;
+}  
+
+struct TeamRemoteMemberViewTokenBoxPayload @0xb869945e21b2d379 {
+    tok @0 : PermissionToken;
+    party @1 : FQParty;
+    tm @2 : Time;
+}
+
+// View tokens this team has to reload its users, if on remote hosts.
+struct TeamRemoteMemberViewToken {
+    team @0 : TeamID;
+    inner @1 : TeamRemoteMemberViewTokenInner;
+    jrt @2 : TeamRSVPRemote; // The join req token that was used to generate this
+}
+
+struct TeamRemoteMemberViewTokenInner {
+    member @0 : FQParty;
+    ptkGen @1 : Generation; // The generation of the PTK it's encrypted for
+    secretBox @2 : SecretBox; // The secret box of ViewTokenBoxPayload
+}
+
+typedef TeamCertHash = StdHash;
+
+enum TeamInviteVersion {
+    V1 @1;
+}
+
+struct TeamInviteV1 @0x9c91987467d09630 {
+    hsh @0 : TeamCertHash;
+    host @1 : HostID;
+}
+
+variant TeamInvite switch (v : TeamInviteVersion) {
+    case V1 @0 : TeamInviteV1;
+}
+
+variant TeamIDOrName switch (id: Bool) {
+    case false @0 : Name;
+    case true @1 : TeamID;
+}
+
+struct FQTeamIDOrName {
+    host @0 : HostID;
+    idOrName @1 : TeamIDOrName;
+}
+
+struct SenderPair {
+    verifyKey @0 : EntityID;
+    hepkFp @1 : HEPKFingerprint;
+}

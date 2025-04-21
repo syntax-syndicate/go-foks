@@ -1,0 +1,23 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xa0e33be5063b7518;
+
+struct CSRFPayload @0x88a926cac9fa88ee {
+    uid @0 : UID;
+    etime @1 : Time;
+}
+
+struct CSRFTokenV1 {
+    keyID @0 : HMACKeyID;
+    etime @1 : Time;
+    hmac @2 : HMAC;
+}
+
+enum CSRFTokenVersion {
+    V1 @1;
+}
+
+variant CSRFToken switch (v : CSRFTokenVersion) {
+    case V1 @1 : CSRFTokenV1;
+}

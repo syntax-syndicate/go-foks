@@ -1,0 +1,207 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x8e57335d46e01383;
+
+enum MerkleNodeType {
+    Leaf @0;
+    Node @1;
+}
+
+// either an EntityID like a uid, team ID, or the hash of a username.
+// in the case of 
+typedef MerkleWorkID = Blob;
+
+typedef MerkleEpno = Uint;
+
+typedef MerkleTreeRFOutput = StdHash;
+typedef MerkleNodeHash = StdHash;
+typedef MerkleBackPointerHash = StdHash;
+typedef MerkleRootHash = StdHash;
+
+enum ChainType {
+    User @0;
+    Name @1;
+    UserSettings @2;
+    Team @3;
+    TeamMembership @4;
+}
+
+struct MerkleTreeRFInput @0xb0e268f388acc97a {
+   ct @0 : ChainType;
+   entity @1 : EntityID;
+   seqno @2 : Seqno;
+   location @3 : Option(TreeLocation); 
+}
+
+// If we're storing name -> EntityID in the merkle tree, this is the input
+// to the hash function to determine the path.
+struct MerkleNameInput @0x80ca15f6452ea908 {
+    name @0 : Name;
+}
+
+// If we're storing username -> UID in the merkle tree, this is what's
+// stored in the leaf.
+struct MerkleLeafUID @0xa7d24a9f4fcadd6f {
+    uid @0 : UID;
+}
+
+struct MerkleInteriorNode {
+    // Note that we're not "shifting" over these matched segments, rather, we're leaving
+    // them in the right positions relative to the start of the string, so that saves us
+    // from annoying bitshift math. This is slightly less efficient in terms of this 
+    // representaion (we need 2 ints not 1) but we can factor out these inefficiencies
+    // on transfer, where the bytes really count.
+    prefixBitStart @0 : Uint;
+    prefixBitCount @1 : Uint;
+    prefix @2 : Blob;
+    left @3 : MerkleNodeHash;
+    right @4 : MerkleNodeHash;
+}
+
+struct MerkleLeaf {
+    key @0 : MerkleTreeRFOutput;
+    value @1 : StdHash;
+}
+
+variant MerkleNode switch (t : MerkleNodeType) @0xe941750dc5b96783 {
+    case Node @0 : MerkleInteriorNode;
+    case Leaf @1 : MerkleLeaf;
+}
+
+enum MerkleRootVersion {
+    V1 @1;
+}
+
+struct MerkleBackPointer {
+    epno @0 : MerkleEpno;
+    hash @1: MerkleRootHash;
+}
+
+// Hashed to get the backPointers hash below, which is offloaded to save
+// bandwidth. Also always contains prev.
+typedef MerkleBackPointers @0x8c7c4b855fba9000 = List(MerkleBackPointer);
+
+struct MerkleRootV1 {
+    epno @0 : MerkleEpno;
+    time @1 : Time;
+    backPointers @2 : MerkleBackPointerHash; 
+    rootNode @3 : MerkleNodeHash;
+    hostchain @4 : HostchainTail;
+}
+
+variant MerkleRoot switch (v : MerkleRootVersion) @0xa88fc49b6df3a111 {
+    case V1 @1 : MerkleRootV1;
+}
+
+typedef MerkleRootBlob @0xa22f0c0921d4e651 = Future(MerkleRoot);
+
+struct SignedMerkleRoot {
+    inner @0 : MerkleRootBlob;
+    sig @1 : Signature;
+}
+
+struct MerkleSegment {
+    prefixBitCount @0 : Uint;
+    prefix @1 : Blob;
+}
+
+struct MerklePathToLeaf {
+    // Just the MerkleLeaf.value, since the key can be computed on the client-side
+    leaf @0 : StdHash;
+    // If we miss our key, and find a different key instead, return it here
+    foundKey @1 : Option(MerkleTreeRFOutput);
+}
+
+struct MerklePathIncomplete {
+    // Sometimes we don't find our key in the tree because our path ends at an interior node that
+    // matches some, but not all, of the bits in the needed key. In these cases, we won't hit
+    // a leaf. Therefore, this field is ever non-nil if (1) our key wasn't found in the tree;
+    // (2) and our path ended in a node rather than a missed leaf.
+    nodeAtPrefixMiss @0: MerkleInteriorNode;
+}
+
+variant MerklePathTerminal switch (leaf : Bool) {
+    case false @0 : MerklePathIncomplete;
+    case true @1  : MerklePathToLeaf;
+}
+
+// In [<# matched bits, opposite hash>] form
+typedef MerklePathCompressedBlob = Blob;
+
+struct MerklePathCompressedPair {
+    path @0 : MerklePathCompressedBlob;
+    terminal @1 : MerklePathTerminal;
+}
+
+struct MerklePathCompressed {
+    root @0 : MerkleRoot;
+    path @1 : MerklePathCompressedBlob; 
+    terminal @2 : MerklePathTerminal;
+}
+
+struct MerklePathsCompressed {
+    root @0 : MerkleRoot;
+    paths @1 : List(MerklePathCompressedPair);
+}
+
+struct MerkleUpdateBatch {
+    epno @0 : MerkleEpno;
+    leaves @1 : List(MerkleLeaf);
+}
+
+protocol MerkleBuilder errors Status @0x9a712168 {
+    poke @0 () : MerkleBuilderPokeArg;
+}
+
+protocol MerkleBatcher errors Status @0xdc826c84 {
+    poke @0 () : MerkleBatcherPokeArg;
+}
+
+protocol MerkleSigner errors Status @0x8630fe8e {
+    poke @0 () : MerkleSignerPokeArg;
+}
+
+typedef MerkleBatchNo = Uint;
+
+struct MerkleBatch {
+    batchno @0 : MerkleBatchNo;
+    time @1 : Time;
+    leaves @2 : List(MerkleLeaf);
+    hostchain @3 : Option(HostchainTail);
+}
+
+struct MerkleBatcherState {
+    next @0: MerkleBatchNo;
+}
+
+enum UpdateTriggerType {
+    None @0;
+    Revoke @1;
+    Provision @2;
+    TeamChange @3;
+}
+
+struct UpdateTriggerRevoke {
+    partyID @0 : PartyID;
+    verifyKeyID @1 : EntityID;
+    epno @2 : MerkleEpno;
+}
+
+struct UpdateTriggerTeamChange {
+    team @0 : TeamID;
+    seqno @1 : Seqno;
+    changes @2 : List(MemberRole);
+    newKeys @3 : List(SharedKey);
+}
+
+struct UpdateTriggerProvision {
+    eid @0 : EntityID;
+}
+
+variant UpdateTrigger switch (t : UpdateTriggerType) {
+    case Revoke @1 : UpdateTriggerRevoke;
+    case Provision @2 : UpdateTriggerProvision;
+    case TeamChange @3 : UpdateTriggerTeamChange;
+    default : void;
+}

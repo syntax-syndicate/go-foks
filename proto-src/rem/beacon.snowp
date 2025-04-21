@@ -1,0 +1,22 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x8737c971c9d7aa0c;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+protocol Beacon 
+    errors lib.Status 
+    argHeader lib.Header 
+    resHeader lib.Header @0xbe314f3c {
+
+    beaconRegister @1 (
+        host @0 : lib.Hostname,
+        port @1 : lib.Port,
+        hostID @2: lib.HostID
+    );
+
+    beaconLookup @2 (
+        hostID @0 : lib.HostID
+    ) -> lib.TCPAddr;
+}

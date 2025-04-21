@@ -1,0 +1,178 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xd81881be03d499e7;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct TeamCreateRes {
+    id @0 : lib.TeamID;
+}
+
+struct NamedFQParty {
+    fqp @0 : lib.FQParty;
+    name @1 : lib.NameUtf8;
+    host @2 : lib.Hostname;
+}
+
+struct ChainDate {
+    seqno @0 : lib.Seqno;
+    time @1 : lib.Time;
+}
+
+struct TeamRosterMember {
+    mem @0 : NamedFQParty;
+    srcRole @1 : lib.Role;
+    dstRole @2 : lib.Role;
+    ptkGen @3 : lib.Generation;
+    added @4 : ChainDate;
+    numMembers @5 : Int;
+}
+
+struct FQTeamParsedAndRole {
+    fqtp @0 : lib.FQTeamParsed;
+    role @1 : lib.Role;
+}
+
+struct TeamRoster {
+    fqp @0 : NamedFQParty; // Will always be a team
+    members @1 : List(TeamRosterMember);
+}
+
+struct FQNamedTeam {
+    id @0 : lib.FQTeam;
+    name @1 : lib.NameUtf8;
+    host @2 : lib.Hostname;
+}
+
+struct TeamAcceptInviteRes {
+    tok @0 : Option(lib.TeamRSVPRemote);
+    team @1 : FQNamedTeam;
+}
+
+struct TeamInboxRow {
+    time @0 : lib.Time;
+    status @1 : lib.Status;
+    tok @2 : lib.TeamRSVP;
+    srcRole @3 : lib.Role;
+    nfqp @4 : NamedFQParty;
+    tmk @5 : lib.TeamMemberKeys; // needed for the eventual addition
+    ptok @6 : Option(lib.PermissionToken); // If remote, token to load party
+    hepks @7 : lib.HEPKSet; // full public keys
+    autofixStatus @8 : Option(lib.Status);
+}
+
+struct TeamInboxReject {
+    fpq @0 : lib.FQParty;
+    status @1 : lib.Status;
+}
+
+struct TeamInbox {
+    rows @0 : List(TeamInboxRow);
+}
+
+struct TokRole {
+    tok @0 : lib.TeamRSVP;
+    role @1 : lib.Role;
+}
+
+typedef FQPartyAndRoleString = Text;
+
+struct FQPartyParsedAndRole {
+    fqp @0 : lib.FQPartyParsed;
+    role @1 : Option(lib.Role);
+}
+
+struct TeamMembership {
+    team @0 : NamedFQParty;
+    srcRole @1 : lib.Role;
+    dstRole @2 : lib.Role;
+    via @3 : Option(NamedFQParty); // If membership via team, return the team details; nil means direct
+    tir @4 : lib.RationalRange; // The index range of the team
+}
+
+struct ListMembershipsRes {
+    homeHost @0 : lib.HostID;
+    teams @1 : List(TeamMembership);
+}
+
+typedef TokRoleString = Text;
+
+protocol Team 
+    errors lib.Status 
+    argHeader Header
+    resHeader Header @0xa7b878de {
+
+    // Create a team with a single owner (the user) for now.
+    teamCreate @0 (
+        nameUtf8 @0 : lib.NameUtf8
+    ) -> TeamCreateRes;
+
+    teamList @1 (
+        team @0 : lib.FQTeamParsed
+    ) -> TeamRoster;
+
+    teamCreateInvite @2 (
+        team @0 : lib.FQTeamParsed
+    ) -> lib.TeamInvite;
+
+    // should work for the 2x2 of {user, team} x {remote, local}
+    // The former is inferred from (actingAs == nil); the latter from
+    // i's host equalling the active user.
+    teamAcceptInvite @3 (
+        i @0 : lib.TeamInvite,
+        actingAs @1 : Option(FQTeamParsedAndRole)  // accept invite on behalf of a team, at given source role
+    ) -> TeamAcceptInviteRes;
+
+    teamInbox @4 (
+        team @0 : lib.FQTeamParsed
+    ) -> TeamInbox;
+
+    // Can be called after a user has "accepted an invite" to a team
+    teamAdmit @5 (
+        team @0 : lib.FQTeamParsed,
+        members @1 : List(TokRole)
+    );
+
+    // Routines for getting and manupalting a team's index range.
+    teamIndexRangeGet @6 (
+        team @0 : lib.FQTeamParsed
+    ) -> lib.RationalRange;
+
+    // "Lowers" the index by slicing the top of the range in half. 
+    // Will lower ∞ to 0x80. Fails if the range is not == 0 mod 2,
+    // or if the range is already fractional.
+    teamIndexRangeLower @7 (
+        team @0 : lib.FQTeamParsed
+    ) -> lib.RationalRange;
+
+    // "Raises" the index by doubling the bottom of the range.
+    // Fails if the range is fractional. 
+    teamIndexRangeRaise @8 (
+        team @0 : lib.FQTeamParsed
+    ) -> lib.RationalRange;
+
+    teamIndexRangeSet @9 (
+        team @0 : lib.FQTeamParsed,
+        range @1 : lib.RationalRange
+    ) -> lib.RationalRange;
+
+    teamIndexRangeSetLow @10 (
+        team @0 : lib.FQTeamParsed,
+        low @1 : lib.Rational
+    ) -> lib.RationalRange;
+
+    teamIndexRangeSetHigh @11 (
+        team @0 : lib.FQTeamParsed,
+        high @1 : lib.Rational
+    ) -> lib.RationalRange;
+
+    teamListMemberships @12 (
+    ) -> ListMembershipsRes;
+
+    teamAdd @13 (
+        team @0 : lib.FQTeamParsed,
+        members @1 : List(FQPartyParsedAndRole),
+        dstRole @2 : Option(lib.Role)
+    );
+}

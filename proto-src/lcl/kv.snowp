@@ -1,0 +1,182 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xccf43f231006ee74;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef SmallFileData @0xc4107596b8b79aa5 = Blob; // a small file's data
+
+variant SmallFileBoxPayload switch (t : lib.KVNodeType) @0xaeec688f3145fddf {
+    case SmallFile @0 : SmallFileData;
+    case Symlink @1 : lib.KVPath;
+}
+
+struct KVDirentNamePayload @0xb9c1587fa732c2c9 {
+    parentDir @0 : lib.DirID;
+    dirVersion @1 : lib.KVVersion;
+    name @2 : lib.KVPathComponent;
+}
+
+struct FileKeyBoxPayload @0x9211ae1e17213884 {
+    id @0 : lib.FileID;
+    vers @1 : lib.KVVersion;
+    seed @2 : lib.FileKeySeed;
+}
+
+struct KVConfig {
+    actingAs @0 : Option(lib.FQTeamParsed);
+    roles @1 : lib.RolePairOpt;
+    mkdirP @2 : Bool;
+    overwriteOk @3 : Bool;
+    noFollow @4 : Bool;
+    noFollowAny @5 : Bool;
+    assertVersion @6 : Option(lib.KVVersion);
+    skipCacheCheck @7 : Bool;
+    mtimeLower @8 : Option(lib.TimeMicro);
+    recursive @9 : Bool;
+}
+
+struct GetFileChunkRes {
+    chunk @0 : lib.ChunkPlaintext;
+    final @1 : Bool;
+}
+
+struct GetFileRes {
+    chunk @0 : GetFileChunkRes;
+    de @1 : lib.KVDirent; // returned if we need to lock this file later
+    id @2 : Option(lib.FileID); // Only needed for large files, with >1 chunk
+}
+
+struct KVStatFile {
+    size @0 : lib.Size;
+}
+
+struct KVStatSymlink {
+    target @0 : lib.KVPath;
+}
+
+struct KVStatDir {
+    vers @0 : lib.KVVersion;
+}
+
+variant KVStatVar switch (t : lib.KVNodeType) {
+    case Dir @1 : KVStatDir;
+    case SmallFile, File @2 : KVStatFile;
+    case Symlink @4 : KVStatSymlink;
+}
+
+// As returned by "stat"
+struct KVStat {
+    de @0 : Option(lib.KVDirent); // '/' doesn't have a dirent, everything else does
+    v @1 : KVStatVar;             // variant that varies per node type
+    read @2 : lib.RoleAndGen;     // minimum role for reading, and also, which PTK gen it's encrypted for
+    write @3 : lib.Role;          // minimum roles required to write it
+}
+
+struct KVListNext {
+    id @0 : lib.DirID;
+    nxt @1 : lib.KVListPagination;
+}
+
+struct CliKVListRes {
+    ents @0 : List(KVListEntry);
+    nxt @1 : Option(KVListNext);
+    parent @2 : lib.KVPath;
+}
+
+struct KVListEntry {
+    de @0 : lib.DirentID;
+    name @1 : lib.KVPathComponent;
+    write @2 : lib.Role;
+    value @3 : lib.KVNodeID;
+    mtime @4 : lib.TimeMicro;
+    ctime @5 : lib.TimeMicro;
+}
+
+struct ChunkNoncePayload @0xadba174b7e8dcc08 {
+    id @0 : lib.FileID;
+    offset @1 : lib.Offset;
+    final @2 : Bool;
+}
+
+protocol KV 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xddf3c319 {
+
+    clientKVMkdir @0 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath
+    ) -> lib.DirID;
+
+    clientKVPutFirst @1 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath,
+        chunk @2 : lib.ChunkPlaintext,
+        final @3 : Bool
+    ) -> lib.KVNodeID;
+
+    clientKVPutChunk @2 (
+        cfg @0 : KVConfig,
+        id @1 : lib.FileID,
+        chunk @2 : lib.ChunkPlaintext,
+        offset @3 : lib.Offset,
+        final @4 : Bool
+    );
+
+    clientKVGetFile @3 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath
+    ) -> GetFileRes;
+
+    clientKVGetFileChunk @4 (
+        cfg @0 : KVConfig,
+        id @1 : lib.FileID,
+        offset @2 : lib.Offset
+    ) -> GetFileChunkRes;
+
+    clientKVSymlink @5 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath,
+        target @2 : lib.KVPath
+    ) -> lib.KVNodeID;
+
+    clientKVReadlink @6 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath
+    ) -> lib.KVPath;
+
+    clientKVMv @7 (
+        cfg @0 : KVConfig,
+        src @1 : lib.KVPath,
+        dst @2 : lib.KVPath
+    );
+
+    clientKVStat @8 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath
+    ) -> KVStat;
+
+    clientKVUnlink @9 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath
+    );
+
+    clientKVList @10 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath,
+        nxt @2 : lib.KVListPagination, // Empty for first page, unless we want files past a given time
+        dirID @3 : Option(lib.DirID),  // we'll know this on page 2, etc.
+        num @4 : Uint              // page length
+    ) -> CliKVListRes;
+
+    clientKVRm @11 (
+        cfg @0 : KVConfig,
+        path @1 : lib.KVPath
+    );
+
+    clientKVUsage @12 (
+        cfg @0 : KVConfig
+    ) -> lib.KVUsage;
+}

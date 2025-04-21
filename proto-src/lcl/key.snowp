@@ -1,0 +1,21 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xbdd928b027e6b6cb;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct KeyListRes {
+    currUser @0 : Option(lib.UserContext);
+    currUserAllKeys @1 : List(ActiveDeviceInfo);
+    allUsers @2 : List(lib.UserInfoAndStatus);
+}
+
+protocol Key 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xbaa02ef2 {
+
+    keyList @0 () -> KeyListRes;
+    keyRevoke @1 ( eid @0 : lib.EntityID );
+}

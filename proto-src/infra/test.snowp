@@ -1,0 +1,19 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x9bc161a4f69b3309;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+// Test RPCs that require a login so we don't get anonymous DOS.  
+// However, it still makes sense to build some mechanism to turn this off
+// in production, which isn't done yet.
+protocol TestServices errors lib.Status @0xf79ac642 {
+
+    testQueueService @0 (
+        queueId @0 : QueueID,
+        laneId @1 : QueueLaneID,
+        msg @2 : Blob
+    ) -> Blob;
+
+}

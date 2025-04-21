@@ -1,0 +1,98 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xd26289c624663257;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+
+struct SetOrGetManagementKeyRes {
+    wasMade @0 : Bool;
+    key @1 : lib.YubiManagementKey;
+}
+
+protocol Yubi 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xd6c6ce5e {
+
+    yubiUnlock @0 ();
+
+    // As in signup, but a stateless interface
+    yubiListAllCards @1 () -> List(lib.YubiCardID);
+
+    // As in signup, but a stateless interface
+    yubiListAllSlots @2 (
+        serial @0 : lib.YubiSerial
+    ) -> ListYubiSlotsRes;
+
+    // As in signup, but a stateless interface
+    yubiMapSlotToUser @3 (
+       ssh @0 : lib.YubiSerialSlotHost
+    ) -> lib.LookupUserRes;
+
+    // As in signup, but a stateless interface
+    yubiProvision @4 (
+        ssh @0 : lib.YubiSerialSlotHost
+    );
+
+    // Associate a new yubikey with an existing account;
+    // host is implied since it needs to be the same host
+    // as the current account.
+    yubiNew @5 (
+        ss @0 : lib.YubiSerialSlot,
+        role @1 : lib.Role,
+        dln @2 : lib.DeviceLabelAndName,
+        pqSlot @3 : lib.YubiSlot,
+        pin @4 : lib.YubiPIN, // might be needed if a management key was set
+        lockWithPin @5 : Bool // whether to lock the new keys with a PIN
+    );
+
+    listAllLocalYubiDevices @6 (
+        sessionId @0 : lib.UISessionID
+    ) -> List(lib.YubiCardID);
+
+    useYubi @7 (
+        sessionId @0 : lib.UISessionID,
+        idx @1 : Uint
+    );
+
+    validateCurrentPIN @8 (
+        sessionId @0 : lib.UISessionID,
+        pin @1 : lib.YubiPIN,
+        doUnlock @2 : Bool
+    );
+
+    setPIN @9 (
+        sessionId @0 : lib.UISessionID,
+        pin @1 : lib.YubiPIN
+    );
+
+    validateCurrentPUK @10 (
+        sessionId @0 : lib.UISessionID,
+        puk @1 : lib.YubiPUK
+    );
+
+    setPUK @11 (
+        sessionId @0 : lib.UISessionID,
+        new @1 : lib.YubiPUK
+    );
+
+    setOrGetManagementKey @12 (
+        sessionId @0 : lib.UISessionID
+    ) -> SetOrGetManagementKeyRes;
+
+    inputPIN @13 (
+        sessionId @0 : lib.UISessionID,
+        pin @1 : lib.YubiPIN
+    ) -> lib.ManagementKeyState;
+
+    managementKeyState @14 (
+        sessionId @0 : lib.UISessionID
+    ) -> lib.ManagementKeyState;
+
+    protectKeyWithPIN @15 (
+        sessionId @0 : lib.UISessionID
+    );
+
+}

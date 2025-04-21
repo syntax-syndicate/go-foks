@@ -1,0 +1,56 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xc6a7c55a6afe4a47;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct GitOpRes {
+    lines @0 : List(Text);
+}
+
+protocol GitHelper 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0x80c74702 {
+
+    gitInit @0 (
+        argv @0 : List(Text),   // the command line arguments the helper gets
+        wd @1 : lib.LocalFSPath,    // the working directory the helper gets
+        gitDir @2 : lib.LocalFSPath // the GIT_DIR environemnt variable the helper gets
+    );
+
+    gitOp @1 (
+       line @0 : Text
+    ) -> GitOpRes;
+
+}
+
+protocol Git 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xe40a37b2 {
+
+    gitCreate @0 (
+        cfg @0 : KVConfig,
+        nm @1 : lib.GitRepo
+    ) -> lib.GitURL;
+
+    gitLs @1 (
+        cfg @0 : KVConfig
+    ) -> List(lib.GitURL);
+}
+
+struct LogLine {
+    msg @0 : Text;
+    newline @1 : Bool;
+    carriageReturn @2 : Bool;
+}
+
+protocol GitHelperLog errors lib.Status @0x8e3b3b3b {
+
+    gitLog @0 (
+        lines @0 : List(LogLine)
+    );
+
+}

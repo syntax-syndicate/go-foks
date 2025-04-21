@@ -1,0 +1,9 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xed5c956bc0322627;
+
+struct TestLinkOuterV1 @0xb901b988ddc2552d {
+    inner @0 : Blob; // Encoded LinkInner; note it may have fields we don't know about!
+    signatures @1 : List(Signature);
+}

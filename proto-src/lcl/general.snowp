@@ -1,0 +1,68 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xbe10d74adc50bcd7;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct HostStatusPair {
+    host @0 : lib.TCPAddr; // == "" if not found
+    status @1 : lib.Status;
+}
+
+struct GetDefaultServerRes {
+    bigTop @0 : HostStatusPair;         // BigTop is where most individuals and small teams wind up
+    mgmt @1 : Option(HostStatusPair);   // Management if where to make new vhosts for larger teams
+}
+
+struct DeviceNagInfo {
+    doNag @0 : Bool;
+    numDevices @1 : Uint;
+}
+
+enum RegServerType {
+    None @0;
+    Default @1;
+    Mgmt @2;
+    Custom @3;
+}
+
+protocol General 
+    argHeader Header
+    resHeader Header
+    errors lib.Status @0xf6cc941b {
+
+    probe @0 (
+        addr @0 : lib.TCPAddr
+    ) : ClientProbeArg -> lib.PublicZone;
+
+    newSession @1 (
+        sessionType @0 : lib.UISessionType
+    ) -> lib.UISessionID;
+
+    finishSession @2 (
+        sessionId @0 : lib.UISessionID
+    );
+
+    getDefaultServer @3 (
+        sessionId @0 : lib.UISessionID,
+        timeout @1: lib.DurationMilli
+    ) -> GetDefaultServerRes;
+
+    putServer @4 (
+        sessionId @0 : lib.UISessionID,
+        server @1 : Option(lib.TCPAddr),
+        timeout @2 : lib.DurationMilli,
+        typ @3 : RegServerType
+    ) -> lib.RegServerConfig;
+
+    getActiveUser @5 () -> lib.UserContext;
+
+    getDeviceNag @6 (
+        withRateLimit @0 : Bool
+    ) -> DeviceNagInfo;
+    
+    clearDeviceNag @7 ( val @0 : Bool );
+
+    
+}

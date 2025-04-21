@@ -1,0 +1,20 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0x94435a3351b9d604;
+
+typedef MultiUseInviteCode = Text;
+
+enum InviteCodeType {
+    None @0;
+    Standard @1;
+    MultiUse @2;
+    SSO @3;
+}
+
+variant InviteCode switch (t : InviteCodeType) {
+    default: void;
+    case Standard @1 : Blob;
+    case MultiUse @2 : MultiUseInviteCode;
+    case SSO: void;
+}

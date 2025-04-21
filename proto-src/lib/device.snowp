@@ -1,0 +1,53 @@
+// Copyright (c) 2025 ne43, Inc.
+// Licensed under the MIT License. See LICENSE in the project root for details.
+
+@0xf2a2a9ea0f7e54c0;
+
+enum DeviceStatus {
+    ACTIVE @0;
+    REVOKED @1;
+}
+
+enum NormalizationVersion {
+    V0 @0;
+}
+
+typedef DeviceNameNormalized = Text;
+typedef DeviceName = Text;
+typedef DeviceSerial = Uint;
+
+struct DeviceLabel @0x9650227205486122 {
+    deviceType @0 : DeviceType;
+    name @1 : DeviceNameNormalized;
+    serial @2 : DeviceSerial; // Will almost always be 1, but there might be >1 adds of the same name, in which case, this bumps
+}
+
+struct DeviceNameNormalizationPreimage {
+    nv @0 : NormalizationVersion;
+    name @1 : DeviceName;
+}
+struct DeviceLabelAndName {
+    label @0 : DeviceLabel;
+    nv @1 : NormalizationVersion;
+    name @2 : DeviceName;
+}
+
+struct ProvisionInfo {
+    signer @0 : EntityID;
+    chain @1 : BaseChainer;
+    leaf @2 : MerkleLeaf; // The leaf in the merkle tree that points to this provision event
+}
+
+struct DeviceInfo {
+    status @0 : DeviceStatus;
+    dn @1 : Option(DeviceLabelAndName); // Not known for others
+    key @2 : MemberRole; // Raw Key material
+    ctime @3 : Time; // when it was created
+    provisioned @4 : ProvisionInfo;
+    revoked @5 : Option(RevokeInfo);
+}
+
+struct DeviceNagInfo {
+    numDevices @0 : Uint;
+    cleared @1 : Bool;
+}
