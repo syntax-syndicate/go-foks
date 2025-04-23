@@ -420,7 +420,7 @@ func (t *TeamMinder) postMembershipLink(
 	glink, err := core.MakeGenericLink(
 		t.au.UID().EntityID(),
 		fqt.Host,
-		t.au.PrivKeys.Devkey,
+		t.au.PrivKeys.GetDevkey(),
 		glp,
 		seqno,
 		prev,

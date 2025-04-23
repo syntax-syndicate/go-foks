@@ -122,11 +122,6 @@ func (m *mockSignupUI) withYubiCardPos(p int) *mockSignupUI {
 	return m
 }
 
-func (m *mockSignupUI) withDeviceErr(e error) *mockSignupUI {
-	m.deviceErr = e
-	return m
-}
-
 func (m *mockSignupUI) withInviteCode(i *rem.InviteCode) *mockSignupUI {
 	m.invite = i
 	return m

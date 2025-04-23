@@ -33,10 +33,6 @@ func (g *gitTestEnv) socket() string {
 	return filepath.Join(g.Dir, "foks.sock")
 }
 
-func (g *gitTestEnv) newAgent(t *testing.T) *testAgent {
-	return newTestAgentWithOpts(t, agentOpts{socketFile: g.socket()})
-}
-
 func (g *gitTestEnv) newAgentAndUser(t *testing.T) *userAgentBundle {
 	rn, err := core.RandomBase36String(8)
 	require.NoError(t, err)

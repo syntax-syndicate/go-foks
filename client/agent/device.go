@@ -111,12 +111,10 @@ func (c *AgentConn) SelfProvision(ctx context.Context, arg lcl.SelfProvisionArg)
 	info.Key = newKeyEID
 
 	uc := libclient.UserContext{
-		Info: info,
-		PrivKeys: libclient.UserPrivateKeys{
-			Devkey: newKey,
-		},
+		Info:    info,
 		Devname: arg.Dln.Name,
 	}
+	uc.PrivKeys.SetDevkey(newKey)
 	uc.SetHomeServer(au.HomeServer())
 	uc.SetSkmm(skm)
 
@@ -125,7 +123,7 @@ func (c *AgentConn) SelfProvision(ctx context.Context, arg lcl.SelfProvisionArg)
 	if err != nil {
 		return err
 	}
-	uc.PrivKeys.Puks = pukset.All()
+	uc.PrivKeys.SetPUKs(pukset)
 
 	var ltx libclient.LocalDbTx
 	err = ltx.PutUser(info, false)

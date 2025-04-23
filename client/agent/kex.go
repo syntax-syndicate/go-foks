@@ -570,7 +570,7 @@ func (a *AgentConn) AssistStartKex(ctx context.Context, id proto.UISessionID) (p
 		cu.Info.Fqu.Uid,
 		cu.Info.Fqu.HostID,
 		role,
-		cu.PrivKeys.Devkey,
+		cu.PrivKeys.GetDevkey(),
 	)
 	hesp, err := sess.kexEng.kexCommonEngine.runKex(m, kex)
 	if err != nil {
@@ -646,7 +646,7 @@ func (a *AgentConn) finishKexProvision(ctx context.Context, sess *SignupSession)
 	if err != nil {
 		return err
 	}
-	uc.PrivKeys.Puks = pukset.All()
+	uc.PrivKeys.SetPUKs(pukset)
 
 	if sess.skm == nil {
 		return core.InternalError("no secret key manager in finishKexProvision")

@@ -14,7 +14,6 @@ import (
 	"github.com/foks-proj/go-foks/lib/core"
 	"github.com/foks-proj/go-foks/lib/merkle"
 	"github.com/foks-proj/go-foks/proto/lcl"
-	"github.com/foks-proj/go-foks/proto/lib"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/proto/rem"
 )
@@ -422,17 +421,6 @@ func (u *UserLoader) resolveHost(m MetaContext, hid proto.HostID) error {
 		return err
 	}
 	u.probe = res.Probe
-	cas, err := m.G().ProbeRootCAs(m.Ctx())
-	if err != nil {
-		return err
-	}
-	var base LoadUserHost
-	if u.arg.Host != nil {
-		base = *u.arg.Host
-	}
-
-	base.Addr = res.Addr
-	base.CAs = cas
 	return nil
 }
 
@@ -513,7 +501,7 @@ func (u *UserLoader) loadUserFromServer(m MetaContext) error {
 
 	arg := rem.LoadUserChainArg{
 		Uid:   u.arg.Uid,
-		Start: lib.ChainEldestSeqno,
+		Start: proto.ChainEldestSeqno,
 	}
 
 	var auth rem.LoadUserChainAuth
@@ -1183,7 +1171,7 @@ func (u *UserLoader) checkRes(m MetaContext) error {
 }
 
 func (u *UserLoader) checkUsername(m MetaContext) error {
-	var existingName *lib.NameAndSeqnoBundle
+	var existingName *proto.NameAndSeqnoBundle
 	if u.existing != nil {
 		existingName = &u.existing.Username
 	}

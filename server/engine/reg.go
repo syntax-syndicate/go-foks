@@ -348,16 +348,6 @@ func (c *RegClientConn) signupInsertPassphrase(
 	return nil
 }
 
-func (c *RegClientConn) signupInsertYubiPHHint(
-	m shared.MetaContext,
-	tx pgx.Tx,
-	uid proto.UID,
-	signer proto.EntityID,
-	hint *proto.YubiSlotAndPQKeyID,
-) error {
-	return shared.InsertYubiPQHint(m, tx, uid, signer, hint)
-}
-
 func (c *RegClientConn) signupTryTx(m shared.MetaContext, tx pgx.Tx, arg rem.SignupArg) error {
 
 	hostId := m.HostID().Id

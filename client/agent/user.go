@@ -356,7 +356,7 @@ func (c *AgentConn) LoginWaitForSsoLogin(
 		return ret, err
 	}
 	sess.oauth2.Idtok = idtok
-	ssoArg, err := c.signSSOArgs(m, sess.oauth2, au.PrivKeys.Devkey, au.HostID())
+	ssoArg, err := c.signSSOArgs(m, sess.oauth2, au.PrivKeys.GetDevkey(), au.HostID())
 	if err != nil {
 		return ret, err
 	}

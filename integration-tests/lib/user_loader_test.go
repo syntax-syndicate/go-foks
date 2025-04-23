@@ -368,9 +368,6 @@ func addUserToGlobalContext(
 	keyId, err := d.EntityID()
 	require.NoError(t, err)
 	uc := &libclient.UserContext{
-		PrivKeys: libclient.UserPrivateKeys{
-			Devkey: d,
-		},
 		Info: proto.UserInfo{
 			Fqu: u.FQUser(),
 			Username: proto.NameBundle{
@@ -381,6 +378,7 @@ func addUserToGlobalContext(
 			Key:  keyId,
 		},
 	}
+	uc.PrivKeys.SetDevkey(d)
 	uc.SetHomeServer(probe)
 	yi, err := d.ExportToYubiKeyInfo(cm.Ctx())
 	require.NoError(t, err)
@@ -548,7 +546,7 @@ func TestUserLoadChangeUsername(t *testing.T) {
 func storePrivateKey(t *testing.T, m libclient.MetaContext) {
 	au := m.G().ActiveUser()
 	require.NotNil(t, au)
-	k := au.PrivKeys.Devkey
+	k := au.PrivKeys.GetDevkey()
 	k25519, ok := k.(*core.PrivateSuite25519)
 	require.True(t, ok)
 	require.NotNil(t, k)
@@ -579,8 +577,8 @@ func storePrivateKey(t *testing.T, m libclient.MetaContext) {
 
 func checkActiveUser(t *testing.T, u *libclient.UserContext) {
 	require.NotNil(t, u)
-	require.NotNil(t, u.PrivKeys.Devkey)
-	require.NotZero(t, len(u.PrivKeys.Puks))
+	require.NotNil(t, u.PrivKeys.GetDevkey())
+	require.NotZero(t, len(u.PrivKeys.GetPUKs()))
 }
 
 func TestLoadActiveUser(t *testing.T) {

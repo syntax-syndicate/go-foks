@@ -25,6 +25,10 @@ type PUKSet struct {
 	host proto.HostID
 }
 
+func NewPUKSet(l []core.SharedPrivateSuiter, h proto.HostID) *PUKSet {
+	return &PUKSet{l: l, host: h}
+}
+
 func (p PUKSet) All() []core.SharedPrivateSuiter {
 	return p.l
 }

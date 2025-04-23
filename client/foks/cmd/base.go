@@ -60,7 +60,7 @@ func quickStartLambda[
 	opts *agent.StartupOpts,
 	fn func(T) error,
 ) error {
-	cli, clean, err := quickStart[T, U, A, R](m, opts)
+	cli, clean, err := quickStart[T](m, opts)
 	if err != nil {
 		return err
 	}
