@@ -1001,3 +1001,82 @@ func (y *YubiPQKeyID) Decode(dec rpc.Decoder) error {
 func (y YubiPQKeyID) Bytes() []byte {
 	return (y)[:]
 }
+
+type YubiManagementKeyBoxPayload struct {
+	Mk   YubiManagementKey
+	Card YubiCardID
+	Slot YubiSlot
+	Yk   YubiID
+}
+
+type YubiManagementKeyBoxPayloadInternal__ struct {
+	_struct struct{} `codec:",toarray"` //lint:ignore U1000 msgpack internal field
+	Mk      *YubiManagementKeyInternal__
+	Card    *YubiCardIDInternal__
+	Slot    *YubiSlotInternal__
+	Yk      *YubiIDInternal__
+}
+
+func (y YubiManagementKeyBoxPayloadInternal__) Import() YubiManagementKeyBoxPayload {
+	return YubiManagementKeyBoxPayload{
+		Mk: (func(x *YubiManagementKeyInternal__) (ret YubiManagementKey) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Mk),
+		Card: (func(x *YubiCardIDInternal__) (ret YubiCardID) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Card),
+		Slot: (func(x *YubiSlotInternal__) (ret YubiSlot) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Slot),
+		Yk: (func(x *YubiIDInternal__) (ret YubiID) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(y.Yk),
+	}
+}
+
+func (y YubiManagementKeyBoxPayload) Export() *YubiManagementKeyBoxPayloadInternal__ {
+	return &YubiManagementKeyBoxPayloadInternal__{
+		Mk:   y.Mk.Export(),
+		Card: y.Card.Export(),
+		Slot: y.Slot.Export(),
+		Yk:   y.Yk.Export(),
+	}
+}
+
+func (y *YubiManagementKeyBoxPayload) Encode(enc rpc.Encoder) error {
+	return enc.Encode(y.Export())
+}
+
+func (y *YubiManagementKeyBoxPayload) Decode(dec rpc.Decoder) error {
+	var tmp YubiManagementKeyBoxPayloadInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*y = tmp.Import()
+	return nil
+}
+
+var YubiManagementKeyBoxPayloadTypeUniqueID = rpc.TypeUniqueID(0xc939af74e0147c7a)
+
+func (y *YubiManagementKeyBoxPayload) GetTypeUniqueID() rpc.TypeUniqueID {
+	return YubiManagementKeyBoxPayloadTypeUniqueID
+}
+
+func (y *YubiManagementKeyBoxPayload) Bytes() []byte { return nil }
+
+func init() {
+	rpc.AddUnique(YubiManagementKeyBoxPayloadTypeUniqueID)
+}

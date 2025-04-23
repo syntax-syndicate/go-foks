@@ -53,6 +53,11 @@ func (a *AgentConn) yubiUnlock(m libclient.MetaContext) error {
 	if err != nil {
 		return err
 	}
+	err = u.SyncYubiManagementKey(m)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -607,6 +612,20 @@ func (c *AgentConn) ProtectKeyWithPIN(
 		sess.doPinProtect = true
 		return nil
 	})
+}
+
+func (c *AgentConn) RecoverManagementKey(
+	ctx context.Context,
+	arg lcl.RecoverManagementKeyArg,
+) error {
+	m := c.MetaContext(ctx)
+	return libclient.RecoverYubiManagementKey(
+		m,
+		arg.Serial,
+		arg.Pin,
+		arg.Puk,
+		arg.Mk,
+	)
 }
 
 var _ lcl.YubiInterface = (*AgentConn)(nil)

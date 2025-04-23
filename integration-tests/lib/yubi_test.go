@@ -7,7 +7,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/foks-proj/go-foks/client/libclient"
 	"github.com/foks-proj/go-foks/client/libyubi"
 	"github.com/foks-proj/go-foks/integration-tests/common"
@@ -15,6 +14,7 @@ import (
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/proto/rem"
 	"github.com/foks-proj/go-foks/server/shared"
+	"github.com/stretchr/testify/require"
 )
 
 func (u *TestUser) SignupYubi(ctx context.Context, t *testing.T, cli *rem.RegClient, d *libyubi.Dispatch) {
@@ -194,4 +194,99 @@ func TestYubiReuse(t *testing.T) {
 	)
 	require.Error(t, err)
 	require.Equal(t, core.KeyInUseError{}, err)
+}
+
+func TestYubiManagementKeyPushPull(t *testing.T) {
+	tew := testEnvBeta(t)
+	a := tew.NewTestUserYubi(t)
+	tew.DirectMerklePoke(t)
+	mc := tew.NewClientMetaContextWithEracer(t, a)
+	yd := mc.G().YubiDispatch()
+	au := mc.G().ActiveUser()
+	require.NotNil(t, au)
+	yinfo := au.Info.YubiInfo
+	require.NotNil(t, yinfo)
+	pin := proto.YubiPIN("123412")
+
+	var defpin proto.YubiPIN
+	err := yd.SetPIN(mc.Ctx(), yinfo.Card, defpin, pin)
+	require.NoError(t, err)
+
+	mk, didSet, err := yd.SetOrGetManagementKey(mc.Ctx(), yinfo.Card, pin)
+	require.NoError(t, err)
+	require.True(t, didSet)
+	require.NotNil(t, mk)
+
+	err = yd.ValidatePIN(mc.Ctx(), yinfo.Card, pin, true)
+	require.NoError(t, err)
+
+	pusher := libclient.NewYMKPush(au)
+	err = pusher.Run(mc)
+	require.NoError(t, err)
+	require.Equal(t, libclient.YMKPushOutcomeNew, pusher.Outcome())
+
+	mk2, err := libclient.NewYMKPull(au).Recover(mc, yinfo.Card)
+	require.NoError(t, err)
+	require.NotNil(t, mk2)
+	require.Equal(t, *mk, *mk2)
+
+	pusher = libclient.NewYMKPush(au)
+	err = pusher.Run(mc)
+	require.NoError(t, err)
+	require.Equal(t, libclient.YMKPushOutcomeFresh, pusher.Outcome())
+
+	// spam the sigchain to force a PUK rotation
+	rabbit := a.ProvisionNewDevice(t, a.eldest, "rabbit", proto.DeviceType_Computer, proto.OwnerRole)
+	tew.DirectDoubleMerklePokeInTest(t)
+	a.RevokeDevice(t, a.eldest, rabbit)
+	tew.DirectMerklePoke(t)
+
+	pusher = libclient.NewYMKPush(au)
+	err = pusher.Run(mc)
+	require.NoError(t, err)
+	require.Equal(t, libclient.YMKPushOutcomeRefreshed, pusher.Outcome())
+
+	var mk3 proto.YubiManagementKey
+	err = core.RandomFill(mk3[:])
+	require.NoError(t, err)
+
+	// change management key to a new random management key; this clears
+	// out all secrets we have stored in the card Handle, and we have to unlock
+	// the card again.
+	err = yd.SetManagementKey(mc.Ctx(), yinfo.Card, mk, mk3)
+	require.NoError(t, err)
+
+	// This unlocks the card and repopulates the management key into the Handle
+	err = yd.ValidatePIN(mc.Ctx(), yinfo.Card, pin, true)
+	require.NoError(t, err)
+
+	pusher = libclient.NewYMKPush(au)
+	err = pusher.Run(mc)
+	require.NoError(t, err)
+	require.Equal(t, libclient.YMKPushOutcomeRefreshed, pusher.Outcome())
+
+	mk4, err := libclient.NewYMKPull(au).Recover(mc, yinfo.Card)
+	require.NoError(t, err)
+	require.NotNil(t, mk4)
+	require.Equal(t, *mk4, mk3)
+
+	var stopped bool
+	for range 10 {
+		err = yd.ValidatePIN(mc.Ctx(), yinfo.Card, "000000xx", true)
+		require.Error(t, err)
+		yerr, ok := err.(core.YubiAuthError)
+		require.True(t, ok)
+		if yerr.Retries == 0 {
+			stopped = true
+			break
+		}
+	}
+	require.True(t, stopped)
+
+	newPin := proto.YubiPIN("234567")
+	err = libclient.RecoverYubiManagementKey(mc, yinfo.Card.Serial, newPin, "45678912", nil)
+	require.NoError(t, err)
+
+	err = yd.ValidatePIN(mc.Ctx(), yinfo.Card, newPin, true)
+	require.NoError(t, err)
 }

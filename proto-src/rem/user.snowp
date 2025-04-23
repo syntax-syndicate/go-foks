@@ -123,6 +123,13 @@ struct TreeLocationPair {
     loc @1 : lib.TreeLocation;
 }
 
+struct YubiEncryptedManagementKey {
+    yk @0 : lib.YubiID;
+    box @1 : lib.SecretBox;
+    gen @2 : lib.Generation;
+    role @3 : lib.Role;
+}
+
 protocol User 
     errors lib.Status 
     argHeader lib.Header 
@@ -242,4 +249,13 @@ protocol User
 
     getDeviceNag @25 () -> lib.DeviceNagInfo;
     clearDeviceNag @26 ( cleared @0 : Bool );
+
+    putYubiManagementKey @27 (
+        ymk @0 : YubiEncryptedManagementKey
+    );
+    getYubiManagementKey @28 (
+        yk @0 : lib.YubiID
+    ) -> YubiEncryptedManagementKey;
+    getAllYubiManagementKeys @29 (
+    ) -> List(YubiEncryptedManagementKey);
 }

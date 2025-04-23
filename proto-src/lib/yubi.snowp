@@ -86,3 +86,10 @@ struct YubiSerialSlot {
 // even a quantum computer can't compute x. This is achieved simply via
 // one-way function, like SHA2.
 typedef YubiPQKeyID = Blob(32); 
+
+struct YubiManagementKeyBoxPayload @0xc939af74e0147c7a {
+    mk @0 : YubiManagementKey;
+    card @1 : YubiCardID;
+    slot @2 : YubiSlot;
+    yk @3 : YubiID;
+}

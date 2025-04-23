@@ -823,6 +823,86 @@ func (p *ProtectKeyWithPINArg) Decode(dec rpc.Decoder) error {
 
 func (p *ProtectKeyWithPINArg) Bytes() []byte { return nil }
 
+type RecoverManagementKeyArg struct {
+	Serial lib.YubiSerial
+	Pin    lib.YubiPIN
+	Puk    lib.YubiPUK
+	Mk     *lib.YubiManagementKey
+}
+
+type RecoverManagementKeyArgInternal__ struct {
+	_struct struct{} `codec:",toarray"` //lint:ignore U1000 msgpack internal field
+	Serial  *lib.YubiSerialInternal__
+	Pin     *lib.YubiPINInternal__
+	Puk     *lib.YubiPUKInternal__
+	Mk      *lib.YubiManagementKeyInternal__
+}
+
+func (r RecoverManagementKeyArgInternal__) Import() RecoverManagementKeyArg {
+	return RecoverManagementKeyArg{
+		Serial: (func(x *lib.YubiSerialInternal__) (ret lib.YubiSerial) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(r.Serial),
+		Pin: (func(x *lib.YubiPINInternal__) (ret lib.YubiPIN) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(r.Pin),
+		Puk: (func(x *lib.YubiPUKInternal__) (ret lib.YubiPUK) {
+			if x == nil {
+				return ret
+			}
+			return x.Import()
+		})(r.Puk),
+		Mk: (func(x *lib.YubiManagementKeyInternal__) *lib.YubiManagementKey {
+			if x == nil {
+				return nil
+			}
+			tmp := (func(x *lib.YubiManagementKeyInternal__) (ret lib.YubiManagementKey) {
+				if x == nil {
+					return ret
+				}
+				return x.Import()
+			})(x)
+			return &tmp
+		})(r.Mk),
+	}
+}
+
+func (r RecoverManagementKeyArg) Export() *RecoverManagementKeyArgInternal__ {
+	return &RecoverManagementKeyArgInternal__{
+		Serial: r.Serial.Export(),
+		Pin:    r.Pin.Export(),
+		Puk:    r.Puk.Export(),
+		Mk: (func(x *lib.YubiManagementKey) *lib.YubiManagementKeyInternal__ {
+			if x == nil {
+				return nil
+			}
+			return (*x).Export()
+		})(r.Mk),
+	}
+}
+
+func (r *RecoverManagementKeyArg) Encode(enc rpc.Encoder) error {
+	return enc.Encode(r.Export())
+}
+
+func (r *RecoverManagementKeyArg) Decode(dec rpc.Decoder) error {
+	var tmp RecoverManagementKeyArgInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*r = tmp.Import()
+	return nil
+}
+
+func (r *RecoverManagementKeyArg) Bytes() []byte { return nil }
+
 type YubiInterface interface {
 	YubiUnlock(context.Context) error
 	YubiListAllCards(context.Context) ([]lib.YubiCardID, error)
@@ -840,6 +920,7 @@ type YubiInterface interface {
 	InputPIN(context.Context, InputPINArg) (lib.ManagementKeyState, error)
 	ManagementKeyState(context.Context, lib.UISessionID) (lib.ManagementKeyState, error)
 	ProtectKeyWithPIN(context.Context, lib.UISessionID) error
+	RecoverManagementKey(context.Context, RecoverManagementKeyArg) error
 	ErrorWrapper() func(error) lib.Status
 	CheckArgHeader(ctx context.Context, h Header) error
 
@@ -1274,6 +1355,27 @@ func (c YubiClient) ProtectKeyWithPIN(ctx context.Context, sessionId lib.UISessi
 	}
 	var tmp rpc.DataWrap[Header, interface{}]
 	err = c.Cli.Call2(ctx, rpc.NewMethodV2(YubiProtocolID, 15, "Yubi.protectKeyWithPIN"), warg, &tmp, 0*time.Millisecond, yubiErrorUnwrapperAdapter{h: c.ErrorUnwrapper})
+	if err != nil {
+		return
+	}
+	if c.CheckResHeader != nil {
+		err = c.CheckResHeader(ctx, tmp.Header)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (c YubiClient) RecoverManagementKey(ctx context.Context, arg RecoverManagementKeyArg) (err error) {
+	warg := &rpc.DataWrap[Header, *RecoverManagementKeyArgInternal__]{
+		Data: arg.Export(),
+	}
+	if c.MakeArgHeader != nil {
+		warg.Header = c.MakeArgHeader()
+	}
+	var tmp rpc.DataWrap[Header, interface{}]
+	err = c.Cli.Call2(ctx, rpc.NewMethodV2(YubiProtocolID, 16, "Yubi.recoverManagementKey"), warg, &tmp, 0*time.Millisecond, yubiErrorUnwrapperAdapter{h: c.ErrorUnwrapper})
 	if err != nil {
 		return
 	}
@@ -1767,6 +1869,34 @@ func YubiProtocol(i YubiInterface) rpc.ProtocolV2 {
 					},
 				},
 				Name: "protectKeyWithPIN",
+			},
+			16: {
+				ServeHandlerDescription: rpc.ServeHandlerDescription{
+					MakeArg: func() interface{} {
+						var ret rpc.DataWrap[Header, *RecoverManagementKeyArgInternal__]
+						return &ret
+					},
+					Handler: func(ctx context.Context, args interface{}) (interface{}, error) {
+						typedWrappedArg, ok := args.(*rpc.DataWrap[Header, *RecoverManagementKeyArgInternal__])
+						if !ok {
+							err := rpc.NewTypeError((*rpc.DataWrap[Header, *RecoverManagementKeyArgInternal__])(nil), args)
+							return nil, err
+						}
+						if err := i.CheckArgHeader(ctx, typedWrappedArg.Header); err != nil {
+							return nil, err
+						}
+						typedArg := typedWrappedArg.Data
+						err := i.RecoverManagementKey(ctx, (typedArg.Import()))
+						if err != nil {
+							return nil, err
+						}
+						ret := rpc.DataWrap[Header, interface{}]{
+							Header: i.MakeResHeader(),
+						}
+						return &ret, nil
+					},
+				},
+				Name: "recoverManagementKey",
 			},
 		},
 		WrapError: YubiMakeGenericErrorWrapper(i.ErrorWrapper()),

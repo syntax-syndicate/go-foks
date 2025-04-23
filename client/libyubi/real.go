@@ -359,4 +359,14 @@ func setOrGetManagementKeyLocked(
 	return &new, true, nil
 }
 
+func (c *RealCard) SetRetries(
+	mk proto.YubiManagementKey,
+	pinRetries,
+	pukRetries int,
+) error {
+	c.Lock()
+	defer c.Unlock()
+	return c.card.SetRetries(mk.Bytes(), piv.DefaultPIN, pinRetries, pukRetries)
+}
+
 var _ Card = (*RealCard)(nil)
