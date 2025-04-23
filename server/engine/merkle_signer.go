@@ -8,11 +8,11 @@ import (
 	"context"
 	"flag"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/foks-proj/go-foks/lib/core"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/server/shared"
 	"github.com/foks-proj/go-snowpack-rpc/rpc"
+	"github.com/jackc/pgx/v5"
 )
 
 type MerkleSignerVHostState struct {
@@ -245,7 +245,7 @@ func (s *MerkleSignerServer) doOnePollForHost(m shared.MetaContext) error {
 	defer tx.Rollback(m.Ctx())
 	var lst *rootAndEpno
 	for _, root := range roots {
-		sig, blob, err := core.Sign2[*proto.MerkleRootBlob](vhs.key, &root.root)
+		sig, blob, err := core.Sign2(vhs.key, &root.root)
 		if err != nil {
 			return err
 		}

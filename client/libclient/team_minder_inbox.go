@@ -276,7 +276,7 @@ func (t *TeamMinder) makeMembershipChainLink(
 
 	if asTeam == nil {
 		eid = au.FQU().Uid.EntityID()
-		key = au.PrivKeys.Devkey
+		key = au.PrivKeys.GetDevkey()
 		tmw, err = t.refreshUserTML(m)
 		if err != nil {
 			return nil, err
@@ -400,7 +400,7 @@ func (t *TeamMinder) acceptInviteForTeamLocal(
 		return err
 	}
 	ptks := tm.Tw().KeyRing().KeysForRole(core.AdminRole)
-	if ptks == nil || ptks.LastGen() < 0 {
+	if ptks == nil || !ptks.LastGen().IsValid() {
 		return core.KeyNotFoundError{Which: "admin PUK"}
 	}
 	ptk := ptks.Current()
@@ -622,7 +622,7 @@ func (t *TeamMinder) acceptInviteForTeamRemote(
 	joinerParty := joinerFqt.FQParty()
 	ptkRole := core.AdminRole
 	ptks := tm.Tw().KeyRing().KeysForRole(ptkRole)
-	if ptks == nil || ptks.LastGen() < 0 {
+	if ptks == nil || !ptks.LastGen().IsValid() {
 		return nil, core.KeyNotFoundError{Which: "admin PTK"}
 	}
 	joinerPtk := ptks.Current()

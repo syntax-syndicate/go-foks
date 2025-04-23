@@ -82,10 +82,6 @@ func (m MetaContext) Errorf(format string, args ...interface{}) {
 	m.logWithSkip().Errorf(format, args...)
 }
 
-func (m MetaContext) addCtxLog(keysAndValues ...interface{}) []interface{} {
-	return AddCtxLog(m.ctx, keysAndValues...)
-}
-
 func (m MetaContext) Warnw(msg string, keysAndValues ...interface{}) {
 	m.logWithSkip().Warnw(msg, AddCtxLog(m.ctx, keysAndValues...)...)
 }

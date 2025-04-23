@@ -164,7 +164,7 @@ func (u *UserContext) AssertUnlocked(ctx context.Context) error {
 
 func (u *UserContext) assertUnlockWithMu(ctx context.Context) error {
 	switch {
-	case u.PrivKeys.Devkey != nil:
+	case u.PrivKeys.GetDevkey() != nil:
 		if u.lockState == proto.UserLockState_SSO {
 			return core.SSOIdPLockedError{}
 		}
@@ -187,12 +187,16 @@ func (u *UserContext) Devkey(ctx context.Context) (core.PrivateSuiter, error) {
 func (u *UserContext) SetDevkey(d core.PrivateSuiter) {
 	u.Lock()
 	defer u.Unlock()
-	u.PrivKeys.Devkey = d
+	u.PrivKeys.devkey = d
 }
 
 func (u *UserContext) devkeyLocked(ctx context.Context) (core.PrivateSuiter, error) {
-	if u.PrivKeys.Devkey != nil {
-		return u.PrivKeys.Devkey, nil
+
+	u.PrivKeys.Lock()
+	defer u.PrivKeys.Unlock()
+
+	if u.PrivKeys.devkey != nil {
+		return u.PrivKeys.devkey, nil
 	}
 	if u.skmm == nil {
 		return nil, core.KeyNotFoundError{Which: "devkey"}
@@ -201,7 +205,7 @@ func (u *UserContext) devkeyLocked(ctx context.Context) (core.PrivateSuiter, err
 	if err != nil {
 		return nil, err
 	}
-	u.PrivKeys.Devkey = ret
+	u.PrivKeys.devkey = ret
 	return ret, nil
 }
 
@@ -408,8 +412,8 @@ func (u *UserContext) exportWithMu() (*proto.UserContext, error) {
 	tmp := u.Info
 	ret.Info = tmp
 
-	if u.PrivKeys.Devkey != nil {
-		ep, err := u.PrivKeys.Devkey.EntityPublic()
+	if dk := u.PrivKeys.GetDevkey(); dk != nil {
+		ep, err := dk.EntityPublic()
 		if err != nil {
 			return nil, err
 		}
@@ -417,7 +421,7 @@ func (u *UserContext) exportWithMu() (*proto.UserContext, error) {
 		ret.Key = eid
 	}
 
-	for _, puk := range u.PrivKeys.Puks {
+	for _, puk := range u.PrivKeys.GetPUKs() {
 		x, _, err := puk.ExportToSharedKey()
 		if err != nil {
 			return nil, err
@@ -435,22 +439,75 @@ func (u *UserContext) exportWithMu() (*proto.UserContext, error) {
 func (u *UserContext) ArePUKsUnlocked() bool {
 	u.RLock()
 	defer u.RUnlock()
-	return len(u.PrivKeys.Puks) > 0
+	return len(u.PrivKeys.puks) > 0
 }
 
 type UserPrivateKeys struct {
-	Puks   []core.SharedPrivateSuiter
-	PUKSet *PUKSet
-	Devkey core.PrivateSuiter
-	Subkey core.EntityPrivate // only available if devkey is a yubikey
-	Cert   *tls.Certificate
+	sync.RWMutex
+	puks   []core.SharedPrivateSuiter
+	pukSet *PUKSet
+	devkey core.PrivateSuiter
+	subkey core.EntityPrivate // only available if devkey is a yubikey
+	cert   *tls.Certificate
+}
+
+func (u *UserPrivateKeys) GetPUKs() []core.SharedPrivateSuiter {
+	u.RLock()
+	defer u.RUnlock()
+	return u.puks
+}
+
+func (u *UserPrivateKeys) GetPUKSet() *PUKSet {
+	u.RLock()
+	defer u.RUnlock()
+	return u.pukSet
+}
+
+func (u *UserPrivateKeys) GetDevkey() core.PrivateSuiter {
+	u.RLock()
+	defer u.RUnlock()
+	return u.devkey
+}
+
+func (u *UserPrivateKeys) SetDevkey(d core.PrivateSuiter) {
+	u.Lock()
+	defer u.Unlock()
+	u.devkey = d
+}
+
+func (u *UserPrivateKeys) SetSubkey(s core.EntityPrivate) {
+	u.Lock()
+	defer u.Unlock()
+	u.subkey = s
+}
+
+func (u *UserPrivateKeys) GetSubkey() core.EntityPrivate {
+	u.RLock()
+	defer u.RUnlock()
+	return u.subkey
+}
+
+func (u *UserPrivateKeys) GetCert() *tls.Certificate {
+	u.RLock()
+	defer u.RUnlock()
+	return u.cert
+}
+
+func (u *UserPrivateKeys) SetCert(c *tls.Certificate) {
+	u.Lock()
+	defer u.Unlock()
+	u.cert = c
 }
 
 func (u *UserPrivateKeys) Clear() {
-	u.Puks = nil
-	u.Devkey = nil
-	u.Subkey = nil
-	u.Cert = nil
+	u.Lock()
+	defer u.Unlock()
+
+	u.puks = nil
+	u.pukSet = nil
+	u.devkey = nil
+	u.subkey = nil
+	u.cert = nil
 }
 
 func (u *UserContext) ClearSecrets() error {
@@ -465,9 +522,9 @@ func (u *UserContext) ClearSecrets() error {
 
 func (u *UserContext) loadSubkeyLocked(m MetaContext) (core.EntityPrivate, error) {
 
-	devkey := u.PrivKeys.Devkey
+	devkey := u.PrivKeys.GetDevkey()
 	home := u.homeServer
-	subkey := u.PrivKeys.Subkey
+	subkey := u.PrivKeys.GetSubkey()
 	uid := u.Info.Fqu.Uid
 
 	if subkey != nil {
@@ -488,22 +545,24 @@ func (u *UserContext) loadSubkeyLocked(m MetaContext) (core.EntityPrivate, error
 		return nil, err
 	}
 
-	u.PrivKeys.Subkey = key
+	u.PrivKeys.SetSubkey(key)
 
 	return key, nil
 }
 
 func (u *UserContext) pickBestPrivateKeyForCert(m MetaContext) (core.EntityPrivate, error) {
+	dk := u.PrivKeys.GetDevkey()
+	sk := u.PrivKeys.GetSubkey()
 	switch {
-	case u.PrivKeys.Subkey != nil:
-		return u.PrivKeys.Subkey, nil
-	case u.PrivKeys.Devkey != nil && !u.PrivKeys.Devkey.HasSubkey():
-		return u.PrivKeys.Devkey.CertSigner()
+	case sk != nil:
+		return sk, nil
+	case dk != nil && !dk.HasSubkey():
+		return dk.CertSigner()
 	case u.skmm != nil:
 		return u.devkeyLocked(m.Ctx())
-	case u.PrivKeys.Devkey != nil && u.PrivKeys.Devkey.HasSubkey():
+	case dk != nil && dk.HasSubkey():
 		return u.loadSubkeyLocked(m)
-	case u.Info.YubiInfo != nil && u.PrivKeys.Devkey == nil:
+	case u.Info.YubiInfo != nil && dk == nil:
 		return nil, core.YubiLockedError{Info: *u.Info.YubiInfo}
 	default:
 		return nil, core.KeyNotFoundError{}
@@ -562,8 +621,9 @@ func (c *UserContext) ClientCert(m MetaContext) (*tls.Certificate, error) {
 }
 
 func (c *UserContext) clientCertLocked(m MetaContext) (*tls.Certificate, error) {
-	if c.PrivKeys.Cert != nil {
-		return c.PrivKeys.Cert, nil
+
+	if cert := c.PrivKeys.GetCert(); cert != nil {
+		return cert, nil
 	}
 
 	key, err := c.pickBestPrivateKeyForCert(m)
@@ -604,7 +664,7 @@ func (c *UserContext) clientCertLocked(m MetaContext) (*tls.Certificate, error) 
 		Certificate: certChain,
 	}
 
-	c.PrivKeys.Cert = cert
+	c.PrivKeys.SetCert(cert)
 	return cert, nil
 }
 
@@ -699,7 +759,7 @@ func (u *UserContext) YubiUnlock(m MetaContext) error {
 }
 
 func (u *UserContext) yubiUnlockUserLocked(m MetaContext) error {
-	if u.PrivKeys.Devkey != nil {
+	if u.PrivKeys.GetDevkey() != nil {
 		return nil
 	}
 	if u.Info.YubiInfo == nil {
@@ -710,7 +770,7 @@ func (u *UserContext) yubiUnlockUserLocked(m MetaContext) error {
 	if err != nil {
 		return err
 	}
-	u.PrivKeys.Devkey = yk
+	u.PrivKeys.SetDevkey(yk)
 	u.Yubi = yk
 
 	return nil
@@ -728,6 +788,13 @@ func (u *UserContext) FQU() proto.FQUser {
 	return u.Info.Fqu
 }
 
+func (u *UserPrivateKeys) SetPUKs(ps *PUKSet) {
+	u.Lock()
+	defer u.Unlock()
+	u.pukSet = ps
+	u.puks = ps.All()
+}
+
 func (u *UserContext) RefreshPUKs(m MetaContext) (*PUKSet, error) {
 	pm := NewPUKMinder(u)
 	pukset, err := pm.GetPUKSetForRole(m, u.Role())
@@ -736,8 +803,8 @@ func (u *UserContext) RefreshPUKs(m MetaContext) (*PUKSet, error) {
 	}
 	u.Lock()
 	defer u.Unlock()
-	u.PrivKeys.Puks = pukset.All()
-	u.PrivKeys.PUKSet = pukset
+
+	u.PrivKeys.SetPUKs(pukset)
 
 	return pukset, nil
 }
@@ -764,7 +831,8 @@ func (u *UserContext) PopulateWithDevkey(m MetaContext) error {
 
 	u.Info.Username = user.prot.Username.B
 	u.Info.HostAddr = user.hostAddr
-	u.PrivKeys.Puks = pukset.All()
+
+	u.PrivKeys.SetPUKs(pukset)
 
 	uinf := u.Info
 	err = StoreUserToDB(m, &uinf)
@@ -775,12 +843,14 @@ func (u *UserContext) PopulateWithDevkey(m MetaContext) error {
 	return nil
 }
 
-func (k UserPrivateKeys) LatestPuk() core.SharedPrivateSuiter {
-	n := len(k.Puks)
+func (k *UserPrivateKeys) LatestPuk() core.SharedPrivateSuiter {
+	k.RLock()
+	defer k.RUnlock()
+	n := len(k.puks)
 	if n == 0 {
 		return nil
 	}
-	return k.Puks[n-1]
+	return k.puks[n-1]
 }
 
 func (m MetaContext) DbPutUserInfo(u *proto.UserInfo, isActive bool) error {
@@ -795,7 +865,7 @@ func (m MetaContext) DbPutUserInfo(u *proto.UserInfo, isActive bool) error {
 func (u *UserContext) PUKs() []core.SharedPrivateSuiter {
 	u.RLock()
 	defer u.RUnlock()
-	return u.PrivKeys.Puks
+	return u.PrivKeys.puks
 }
 
 func (u *UserContext) GetUnlockedSKMWK(m MetaContext) (*lcl.UnlockedSKMWK, error) {

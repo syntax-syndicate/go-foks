@@ -452,10 +452,8 @@ func (u *TestUser) exportToUserContext(t *testing.T) *libclient.UserContext {
 				NameUtf8: u.name,
 			},
 		},
-		PrivKeys: libclient.UserPrivateKeys{
-			Devkey: u.devices[0],
-		},
 	}
+	ret.PrivKeys.SetDevkey(u.devices[0])
 
 	return ret
 }

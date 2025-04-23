@@ -82,13 +82,16 @@ func (s *SignupSession) UserContext() (*libclient.UserContext, error) {
 			KeyGenus: kg,
 			Key:      keyID,
 		},
-		PrivKeys: libclient.UserPrivateKeys{
-			Devkey: s.privKey,
-		},
 		Devname: s.deviceName,
 	}
+	ret.PrivKeys.SetDevkey(s.privKey)
 	if s.puk != nil {
-		ret.PrivKeys.Puks = []core.SharedPrivateSuiter{s.puk}
+		ret.PrivKeys.SetPUKs(
+			libclient.NewPUKSet(
+				[]core.SharedPrivateSuiter{s.puk},
+				s.fqu.HostID,
+			),
+		)
 	}
 
 	if !s.selfTok.IsZero() {

@@ -5,7 +5,6 @@ package libclient
 
 import (
 	"github.com/foks-proj/go-foks/lib/core"
-	"github.com/foks-proj/go-foks/proto/lib"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/proto/rem"
 )
@@ -114,7 +113,7 @@ func (y *ymkMgrKey) unbox(m MetaContext, uc *UserContext) error {
 
 	key := puk.SecretBoxKey()
 
-	var payload lib.YubiManagementKeyBoxPayload
+	var payload proto.YubiManagementKeyBoxPayload
 	err = core.OpenSecretBoxInto(&payload, y.raw.Box, &key)
 	if err != nil {
 		return err
@@ -264,8 +263,8 @@ func (y *YMKPush) checkEncFresh(m MetaContext, mk *proto.YubiManagementKey) erro
 	return nil
 }
 
-func (y *YMKPush) box(m MetaContext, mk *lib.YubiManagementKey) error {
-	pylod := lib.YubiManagementKeyBoxPayload{
+func (y *YMKPush) box(m MetaContext, mk *proto.YubiManagementKey) error {
+	pylod := proto.YubiManagementKeyBoxPayload{
 		Mk:   *mk,
 		Card: y.yi.Card,
 		Slot: y.yi.Key.Slot,

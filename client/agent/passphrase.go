@@ -38,7 +38,7 @@ func (c *AgentConn) PassphraseSet(ctx context.Context, pp lcl.PassphraseSetArg) 
 	if pp.First {
 		err = pm.SetPassphrase(ctx, psi, pp.Passphrase, puk)
 	} else {
-		err = pm.ChangePassphraseWithPUK(ctx, psi, pp.Passphrase, au.PrivKeys.Puks)
+		err = pm.ChangePassphraseWithPUK(ctx, psi, pp.Passphrase, au.PrivKeys.GetPUKs())
 	}
 	if err != nil {
 		return err

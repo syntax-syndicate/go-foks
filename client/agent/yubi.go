@@ -188,10 +188,8 @@ func populateUserContext(
 			KeyGenus: kg,
 			Key:      keyID,
 		},
-		PrivKeys: libclient.UserPrivateKeys{
-			Devkey: dev,
-		},
 	}
+	uctx.PrivKeys.SetDevkey(dev)
 	if yinf != nil {
 		uctx.Info.YubiInfo = yinf
 		uctx.Yubi = dev
