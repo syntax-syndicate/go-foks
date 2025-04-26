@@ -14,7 +14,6 @@ import (
 	"github.com/foks-proj/go-foks/proto/rem"
 	"github.com/foks-proj/go-foks/server/shared"
 	"github.com/foks-proj/go-snowpack-rpc/rpc"
-	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -173,7 +172,7 @@ func (s *MerkleBatcherServer) pollHostchain(m shared.MetaContext, batch *proto.M
 	var seqno int
 	var hash []byte
 	var stateRaw string
-	var ageSecs pgtype.Int8
+	var ageSecs *int64
 
 	inProcess := false
 	var tail *proto.HostchainTail
@@ -190,8 +189,8 @@ func (s *MerkleBatcherServer) pollHostchain(m shared.MetaContext, batch *proto.M
 			}
 		}
 		var age shared.Seconds
-		if ageSecs.Status == pgtype.Present {
-			age = shared.Seconds(ageSecs.Int)
+		if ageSecs != nil {
+			age = shared.Seconds(*ageSecs)
 		}
 		state := shared.MerkleWorkState(stateRaw)
 		switch state {
@@ -282,7 +281,7 @@ func (s *MerkleBatcherServer) pollLeaves(m shared.MetaContext, b *proto.MerkleBa
 	var id, key, val []byte
 	var seqno, typ, ctime int
 	var state string
-	var age pgtype.Int8
+	var age *int64
 
 	type leaf struct {
 		m     proto.MerkleLeaf
@@ -318,8 +317,8 @@ func (s *MerkleBatcherServer) pollLeaves(m shared.MetaContext, b *proto.MerkleBa
 			ctime: proto.Time(ctime),
 			id:    idx,
 		}
-		if age.Status == pgtype.Present {
-			leaf.age = shared.Milliseconds(age.Int)
+		if age != nil {
+			leaf.age = shared.Milliseconds(*age)
 		}
 		err = leaf.m.Key.ImportFromBytes(key)
 		if err != nil {

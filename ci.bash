@@ -17,19 +17,11 @@ run() {
   yubi=false
   
   prot=false
-  
-  while getopts "py" opt; do
-    case $opt in
-      y ) yubi=true ;;
-      \? ) echo "Invalid option: -$OPTARG" >&2
-           exit 1 ;;
-      p ) prot=true;;
-    esac
-  done
-  shift $(expr $OPTIND - 1)
-  
-  if [ "$prot" = true ]; then 
-      (cd proto && sh -x build.sh)
+
+  # check if there is exactly one argument and it's --yubi-destructive
+  if [ "$#" -eq 1 ] && [ "$1" == "--yubi-destructive" ]; then
+      yubi=true
+      shift
   fi
 
   go tool golangci-lint run 

@@ -29,6 +29,10 @@ git-link:
 ci:
 	bash ci.bash
 
+.PHONY: ci-yubi-destructive
+ci-yubi-destructive:
+	bash ci.bash --yubi-destructive
+
 ##
 ##-----------------------------------------------------------------------
 ##

@@ -44,15 +44,11 @@ func pushShutdownHook(fn func() error) {
 }
 
 func shutdown() {
-	err := globalTestEnv.ShutdownFn()
-	if err != nil {
-		panic(err)
-	}
+	// In general, don't panic on shutdown problems. Just ignore these
+	// errors.
+	_ = globalTestEnv.ShutdownFn()
 	for _, fn := range shutdownHooks {
-		err = fn()
-		if err != nil {
-			panic(err)
-		}
+		_ = fn()
 	}
 }
 

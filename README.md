@@ -65,13 +65,13 @@ systemctl restart pcscd
 
 ### Run all Tests
 
-Running `sh -x ci.sh` will run all tests on a mock yubikey. I do this 99% of the time. Every
+Running `make ci` will run all tests on a mock yubikey. I do this 99% of the time. Every
 so often I test against a hardware yubikey, but I recommend a throwaway yubikey for that, since it
 will make destructive changes to the yubikey. You'll need Docker installed
 
 ```bash
-sh -x ci.sh     # uses a mock yubikey
-sh -x ci.sh -y  # uses a real yubikey; it's way slower, and it will make destructive changes to the yubikey
+make ci                   # uses a mock yubikey
+make ci-yubi-destructive  # uses a real yubikey; it's way slower, and it will make destructive changes to the yubikey
 ```
 
 ### Run Locally Against Local Server
