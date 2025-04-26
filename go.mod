@@ -24,8 +24,7 @@ require (
 	github.com/go-piv/piv-go/v2 v2.3.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-jsonnet v0.20.0
-	github.com/jackc/pgx v3.6.2+incompatible
-	github.com/jackc/pgx/v5 v5.4.3
+	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jedib0t/go-pretty/v6 v6.4.6
 	github.com/keybase/clockwork v0.1.0
 	github.com/keybase/go-codec v0.0.0-20180928230036-164397562123
@@ -178,8 +177,8 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
