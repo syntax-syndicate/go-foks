@@ -22,7 +22,6 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/go-piv/piv-go/v2 v2.3.0
-	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-jsonnet v0.20.0
 	github.com/jackc/pgx/v5 v5.7.4
