@@ -115,10 +115,7 @@ func setup() {
 }
 
 func shutdown() {
-	err := globalTestEnv.Shutdown()
-	if err != nil {
-		panic(err)
-	}
+	_ = globalTestEnv.Shutdown()
 	libclient.CleanupMacOSKeychainTest()
 	cleanup()
 }
