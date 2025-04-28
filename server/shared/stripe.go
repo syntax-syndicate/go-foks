@@ -119,21 +119,24 @@ func (r *RealStripe) LoadPaymentSuccess(
 	invId := x.LatestInvoice.ID
 	inv := x.LatestInvoice
 
-	if inv.Charge == nil {
-		return nil, stripeErr(core.NotFoundError("stripe invoice charge"))
-	}
-
-	return &PaymentSuccess{
+	ret := &PaymentSuccess{
 		SubID:              subId,
 		PriceID:            infra.StripePriceID(price),
 		ProdID:             infra.StripeProdID(prod),
 		SessionID:          sessionId,
 		InvID:              infra.StripeInvoiceID(invId),
-		ChargeID:           infra.StripeChargeID(inv.Charge.ID),
 		CurrentPeriodStart: time.Unix(int64(x.CurrentPeriodStart), 0),
 		CurrentPeriodEnd:   time.Unix(int64(x.CurrentPeriodEnd), 0),
 		Amount:             infra.Cents(item.Price.UnitAmount),
-	}, nil
+	}
+
+	// The charge might not have happened if the user paid $0 for the plan
+	// (via a promotion code).
+	if inv.Charge != nil {
+		ret.ChargeID = infra.StripeChargeID(inv.Charge.ID)
+	}
+
+	return ret, nil
 }
 
 func (r *RealStripe) ExpireSession(
@@ -328,11 +331,13 @@ func (r *RealStripe) CheckoutSession(
 	var zed infra.StripeSessionID
 	exp := arg.Expire.Unix()
 	params := stripe.CheckoutSessionParams{
-		SuccessURL: arg.SuccessURL.StringP(),
-		CancelURL:  arg.CancelURL.StringP(),
-		Customer:   arg.CustomerID.StringP(),
-		ExpiresAt:  &exp,
-		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
+		SuccessURL:              arg.SuccessURL.StringP(),
+		CancelURL:               arg.CancelURL.StringP(),
+		Customer:                arg.CustomerID.StringP(),
+		ExpiresAt:               &exp,
+		Mode:                    stripe.String(string(stripe.CheckoutSessionModeSubscription)),
+		AllowPromotionCodes:     stripe.Bool(true),
+		PaymentMethodCollection: stripe.String("if_required"),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
 				Price:    arg.PriceID.StringP(),
