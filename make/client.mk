@@ -33,6 +33,19 @@ ci:
 ci-yubi-destructive:
 	bash ci.bash --yubi-destructive
 
+.PHONY: macos-sign
+macos-sign:
+	codesign --deep \
+         --options runtime \
+         --timestamp \
+         --sign "Developer ID Application: NE43 INC (L2W77ZPF94)" \
+		 $$(scripts/gowhere.sh)/foks
+
+.PHONY: macos-verify
+macos-verify:
+	codesign --verify --deep --strict --verbose=2 $$(scripts/gowhere.sh)/foks
+	codesign -dvv $$(scripts/gowhere.sh)/foks
+
 ##
 ##-----------------------------------------------------------------------
 ##
