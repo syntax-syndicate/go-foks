@@ -49,7 +49,7 @@ func DeviceNag(m libclient.MetaContext) error {
 		ui.ErrorStyle.Render(
 			" You only have one active device; if you lose access to it, you will lose access to all\n"+
 				" data stored in this account. FOKS uses true end-to-end encryption, so your service provider\n"+
-				" does not store backup keys. Protect yourself! Try one of:\n",
+				" does not store backup keys. Protect yourself! Try:\n",
 		)
 	es := m.G().UIs().Terminal.ErrorStream()
 	fmt.Fprintf(es, "%s", msg)
