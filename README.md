@@ -57,11 +57,12 @@ systemctl restart polkit
 systemctl restart pcscd
 ```
 
-
 ### Testing on Prod (foks.app)
 
-* for now, you can use the invite code `cczjho9r`.
-* Stripe is in test mode, so you can use the credit card number `4242 4242 4242 4242` with any future date and any CVC.
+* For now, you can use the invite code `cczjho9r`.
+* Contact me (max AT ne43.com) if you'd like a coupon code for a free or discounted plan.
+* If you want to try a virtual host, first signup for an account on `vh.foks.app`, using
+  the same invite code. Then you can add virtual hosting via the web interface (`foks admin web` to login).
 
 ### Run all Tests
 
