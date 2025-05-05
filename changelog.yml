@@ -18,3 +18,5 @@ changelog:
         closes: [ "#21" ]
       - desc: Upgrade x/net to v0.0.39 via upgraded go-snowpack-rpc
         closes: []
+      - desc: bump github.com/gohugoio/hugo from 0.134.3 to 0.139.4; closing med security vuln
+        closes: []
