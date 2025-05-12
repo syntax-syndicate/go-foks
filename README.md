@@ -4,7 +4,7 @@ Welcome to FOKS. This is our provisional name for this project, but it might sti
 Documentation is a work-in-progress, but below you'll find the most important information
 to get started.
 
-## Overviewa
+## Overview
 
 * See [foks.pub](https://foks.pub) for a high-level overview of the project.
 * Read our [whitepaper](https://github.com/foks-proj/foks-whitepaper)
