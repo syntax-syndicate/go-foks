@@ -6,9 +6,9 @@ to get started.
 
 ## Overviewa
 
-* See [[foks.pub](https://foks.pub)] for a high-level overview of the project.
-* Read our [[whitepaper](https://github.com/foks-proj/foks-whitepaper)]
-* We run a [[hosting service (foks.app)](https://w.foks.app)]
+* See [foks.pub](https://foks.pub) for a high-level overview of the project.
+* Read our [whitepaper](https://github.com/foks-proj/foks-whitepaper)
+* We run a [hosting service (foks.app)](https://w.foks.app)
 
 ## Build / Test / Install
 
