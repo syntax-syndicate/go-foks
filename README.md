@@ -29,7 +29,7 @@ foks signup      # sign up for a new account on `foks.app`, invite code is `cczj
 
 #### Linux
 
-On Linux, you'll need before you can build:
+On Linux, you'll need the [PCSC lite library](https://pcsclite.apdu.fr/) before you can build:
 
 ```bash
 sudo apt-get install gcc make libpcsclite-dev pkg-config
