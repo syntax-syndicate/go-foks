@@ -277,6 +277,7 @@ spl1() {
 if [ "$prod" = true ]; then
     (cd ${topdir_srv} && \
         ln -fs ${srcdir}/scripts/deploy.sh . && \
+        ln -fs ${srcdir}/scripts/restart.bash . && \
         ln -fs ${srcdir}/scripts/config-remote.sh )
 fi
 
