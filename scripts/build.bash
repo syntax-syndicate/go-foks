@@ -335,7 +335,7 @@ init_plans() {
         --prices 1m:18995,1y:189950 \
         --max-vhosts 100 \
         --max-seats 2000 \
-        --details '100GB of storage' \
+        --details '1TB of storage' \
         --details 'Up to 2000 total users across 100 hosts' \
         --details 'Unlimited teams' \
         --details 'Ouath2 SSO' \
