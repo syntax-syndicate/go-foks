@@ -10,6 +10,8 @@ changelog:
         closes: ["#48"]
       - desc: Retire TypeScript-based snowpack compiler; move over to Go-based compiler
         closes : []
+      - desc: Fix panic in `team add` from failing to load a user by username a second time
+        closes: ["#52"]
   - version: 0.0.19
     urgency: low
     stable: false
