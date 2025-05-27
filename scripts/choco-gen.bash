@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+if [ ! -f ".top" ]; then
+	echo "Must be run from top dir"
+	exit 1
+fi
+
 sversion=$(git describe --tags --abbrev=0)
 numversion=$(echo $sversion | cut -d'v' -f2)
 
@@ -9,6 +14,8 @@ url32="https://github.com/foks-proj/go-foks/releases/download/${sversion}/foks-$
 url32sha=$(curl -sSL $url32 | sha256sum | cut -d' ' -f1)
 url64="https://github.com/foks-proj/go-foks/releases/download/${sversion}/foks-${sversion}-win-choco-amd64.zip"
 url64sha=$(curl -sSL $url64 | sha256sum | cut -d' ' -f1)
+
+mkdir -p pkg/choco/tools
 
 cat <<EOF >pkg/choco/foks.nuspec
 <?xml version="1.0" encoding="utf-8"?>
@@ -91,5 +98,5 @@ EOF
 if [ $(which choco) ]; then
     (cd pkg/choco && \
 	  choco pack && \
-	  foks kv put --team build.win -p -f /rel/foks.${numversion}.nupkg foks.${numversion}.nupkg )
+	  foks kv put --team build.win --force -p -f /rel/foks.${numversion}.nupkg foks.${numversion}.nupkg )
 fi
