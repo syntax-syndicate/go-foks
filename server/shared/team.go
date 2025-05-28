@@ -892,6 +892,12 @@ func InsertRemoteMemberViewTokens(
 	team proto.EntityID,
 	toks []proto.TeamRemoteMemberViewToken,
 ) error {
+	ptkRole := core.TemporaryDefaultViewerRole
+	rt, vl, err := ptkRole.ExportToDB()
+	if err != nil {
+		return err
+	}
+
 	for _, tok := range toks {
 		if tok.Inner.Member.Host.Eq(m.HostID().Id) {
 			return core.TeamError("cannot insert local member view token")
@@ -906,16 +912,20 @@ func InsertRemoteMemberViewTokens(
 		tag, err := tx.Exec(m.Ctx(),
 			`INSERT INTO team_remote_member_view_tokens(
 				 short_host_id, team_id, member_id, member_host_id,
-				 ptk_gen, secret_box, ctime, mtime)
-			VAlUES($1, $2, $3, $4, $5, $6, NOW(), NOW())
+				 ptk_gen, secret_box, ctime, mtime, 
+				 ptk_role_type, ptk_viz_level)
+			VAlUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8)
 			ON CONFLICT (short_host_id, team_id, member_id, member_host_id)
-			DO UPDATE SET secret_box=$6, mtime=NOW()`,
+			DO UPDATE SET secret_box=$6, mtime=NOW(), 
+				ptk_role_type=$7, ptk_viz_level=$8`,
 			m.ShortHostID().ExportToDB(),
 			team.ExportToDB(),
 			tok.Inner.Member.Party.ExportToDB(),
 			tok.Inner.Member.Host.ExportToDB(),
 			int(tok.Inner.PtkGen),
 			b,
+			rt,
+			vl,
 		)
 		if err != nil {
 			return err

@@ -572,6 +572,13 @@ CREATE TABLE local_view_permissions (
 );
 CREATE UNIQUE INDEX local_view_permissions_token_idx ON local_view_permissions(short_host_id, token);
 
+/* when an admin of team A on host H accepts an invite from team B on host
+ * G, then the admin A generated a new token and sends it to G.
+ * It writes a row into this table to bookkeep that. So here, there
+ * target_eid is A, the viewer_eid is B, and the viewer_host_id is G.
+ * Note we don't have viewer_role_type or viewer_viz_level here, because
+ * there isn't a good way to enforce that on host H.
+ */
 CREATE TABLE remote_view_permissions (
     short_host_id SMALLINT NOT NULL,
     target_eid BYTEA NOT NULL,
@@ -686,6 +693,8 @@ CREATE TABLE team_remote_member_view_tokens (
     member_id BYTEA NOT NULL,
     member_host_id BYTEA NOT NULL,
     ptk_gen INTEGER NOT NULL,
+    ptk_role_type SMALLINT NOT NULL,
+    ptk_viz_level SMALLINT NOT NULL,
     secret_box BYTEA NOT NULL,
     ctime TIMESTAMP NOT NULL,
     mtime TIMESTAMP NOT NULL,
@@ -926,3 +935,4 @@ CREATE TABLE schema_patches (
 );
 
 INSERT INTO schema_patches (id, ctime) VALUES (1, NOW());
+INSERT INTO schema_patches (id, ctime) VALUES (2, NOW());
