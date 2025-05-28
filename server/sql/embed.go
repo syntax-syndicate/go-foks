@@ -35,10 +35,14 @@ var SQL = map[string]string{
 }
 
 //go:embed patches/foks_users/p1.sql
-var foksUsersPatch1 string
+var usersPatch1 string
+
+//go:embed patches/foks_users/p2.sql
+var usersPatch2 string
 
 var Patches = map[string]map[int]string{
 	"foks_users": {
-		1: foksUsersPatch1,
+		1: usersPatch1,
+		2: usersPatch2,
 	},
 }
