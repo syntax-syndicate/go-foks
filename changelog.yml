@@ -5,6 +5,7 @@ changelog:
   - version: 0.0.20
     urgency: low
     stable: false
+    date: 2025-05-30 10:00:00 -0400
     changes:
       - desc: capture stdout and stderr to log file on macos/launchd
         closes: ["#75"]
