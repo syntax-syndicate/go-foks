@@ -12,9 +12,9 @@ usage() {
 
 strip=0
 packaging="local"
-pkgTag=""
-outSffx="exe"
-doZip=0
+pkg_tag=""
+out_sffx="exe"
+do_zip=0
 
 # take two arguments: -p which can be arm64 or amd64, and also
 # -s, which is a boolean flag that means to strip the binary
@@ -30,9 +30,9 @@ while getopts ":p:sc" opt; do
         c)
             choco=1
             packaging="choco"
-            pkgTag="-choco"
-            outSffx="zip"
-            doZip=1
+            pkg_tag="-choco"
+            out_sffx="zip"
+            do_zip=1
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -79,6 +79,7 @@ case $plat in
         docker_file=dockerfiles/cross-compile-win-amd64.dev
         cc=x86_64-w64-mingw32-gcc
         cxx=x86_64-w64-mingw32-g++
+        goarch=amd64
         filearch=amd64
         ;;
     win-x86)
@@ -95,11 +96,11 @@ case $plat in
         ;;
 esac
 
-output=foks-${sversion}-win${pkgTag}-${filearch}.${outSffx}
+output=foks-${sversion}-win${pkg_tag}-${filearch}.${out_sffx}
 target=build/${output}
 
 tmpdir=""
-if [ $doZip -eq 1 ]; then
+if [ $do_zip -eq 1 ]; then
     tmpdir=$(mktemp -d)
     outDir=${tmpdir}
     target=${outDir}/foks.exe
@@ -141,7 +142,7 @@ build() {
 }
 
 pkgZip() {
-    if [ $doZip -eq 1 ]; then
+    if [ $do_zip -eq 1 ]; then
         final=build/${output}
         (cd ${tmpdir} && zip -r ${output} foks.exe)
         mv ${tmpdir}/${output} ${final}
