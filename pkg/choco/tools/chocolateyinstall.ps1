@@ -1,7 +1,7 @@
-$url64       = "https://github.com/foks-proj/go-foks/releases/download/v0.0.19/foks-v0.0.19-win-choco-amd64.zip"
-$url         = "https://github.com/foks-proj/go-foks/releases/download/v0.0.19/foks-v0.0.19-win-choco-x86.zip"
-$checksum    = "09601e18e5284d713db0f01caabf94e41804743515053f8a4d6f561840f862a0"
-$checksum64  = "c8e9e35b41416f7c454b3d0e720c09dfdbe81e85bfd27f3657a1cc3b2007df5c"
+$url64       = "https://github.com/foks-proj/go-foks/releases/download/v0.0.20/foks-v0.0.20-win-choco-amd64.zip"
+$url         = "https://github.com/foks-proj/go-foks/releases/download/v0.0.20/foks-v0.0.20-win-choco-x86.zip"
+$checksum    = "93a76d3dcbc6d47ba0cdaa5a32884d58159af8d04caec9b1fd0307e40507526a"
+$checksum64  = "6d9a663c2582d4a326fa513ae5ebbb2f03d8b1007be94c4e35771faa8bc0f097"
 $packageName = "foks"
 $toolsDir    = "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)"
 
