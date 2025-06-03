@@ -14,9 +14,10 @@ import (
 
 type BeaconRegister struct {
 	CLIAppBase
-	Delay time.Duration
-	Tries int
-	Wait  time.Duration
+	Delay       time.Duration
+	Tries       int
+	Wait        time.Duration
+	HostnameRaw string
 }
 
 func (k *BeaconRegister) CobraConfig() *cobra.Command {
@@ -27,6 +28,8 @@ func (k *BeaconRegister) CobraConfig() *cobra.Command {
 	ret.Flags().IntVar(&k.Tries, "tries", 10, "number of tries to register before failing")
 	ret.Flags().DurationVar(&k.Wait, "wait", 0, "wait time between registration attempts (default 30s)")
 	ret.Flags().DurationVar(&k.Delay, "delay", 0, "delay (on startup); default 0s")
+	ret.Flags().StringVar(&k.HostnameRaw, "hostname", "",
+		"the hostname to register with; if not set, will use the host's probe external hostname")
 
 	return ret
 }
@@ -35,6 +38,11 @@ func (k *BeaconRegister) Run(m shared.MetaContext) error {
 	err := shared.InitHostID(m)
 	if err != nil {
 		return err
+	}
+
+	var hn proto.Hostname
+	if k.HostnameRaw != "" {
+		hn = proto.Hostname(k.HostnameRaw)
 	}
 
 	nTries := k.Tries
@@ -49,9 +57,8 @@ func (k *BeaconRegister) Run(m shared.MetaContext) error {
 			m.Infow("Sleeping before next attempt", "attempt", i, "of", nTries, "wait", k.Wait)
 			time.Sleep(k.Wait)
 		}
-		m.Infow("Registering", "attempt", i, "of", nTries)
-		var zed proto.Hostname
-		err = shared.BeaconRegisterCli(m, zed, nil)
+		m.Infow("Registering", "attempt", i, "of", nTries, "hostname", hn)
+		err = shared.BeaconRegisterCli(m, hn, nil)
 		if err == nil {
 			m.Infow("Success", "attempt", i, "of", nTries)
 			return nil
