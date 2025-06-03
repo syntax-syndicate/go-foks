@@ -457,14 +457,13 @@ local final(o) = o + {
 		DbHostname:    postgresContainerName,
 		Key:           e.cksKey.String(),
 		DockerCompose: !isHost,
-		Hostname:      "localhost",
+		Hostname:      e.hostname,
 		Topdir:        "/foks",
 	}
 
 	if isHost {
 		data.DbPort = e.dbPort
 		data.DbHostname = "localhost"
-		data.Hostname = e.hostname
 		data.Topdir = "."
 	}
 
@@ -1264,6 +1263,7 @@ func (e *StandupEng) writeDockerComposeYMLinner(m shared.MetaContext) error {
 			"--delay", "5s",
 			"--tries", "30",
 			"--wait", "15s",
+			"--hostname", e.hostname.String(),
 		},
 		Volumes:   volumes,
 		Restart:   types.RestartPolicyOnFailure,
