@@ -15,7 +15,7 @@ import (
 // in terms of FOKS clients talking to FOKS servers.
 const CurrentCompatibilityVersion proto.CompatibilityVersion = 1
 
-var CurrentClientVersion = proto.SemVer{
+var CurrentSoftwareVersion = proto.SemVer{
 	Major: 0,
 	Minor: 0,
 	Patch: 20,

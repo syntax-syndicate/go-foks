@@ -14,7 +14,7 @@ import (
 func MakeProtoHeader() lcl.Header {
 	return lcl.NewHeaderWithV1(
 		lcl.HeaderV1{
-			Semver: core.CurrentClientVersion,
+			Semver: core.CurrentSoftwareVersion,
 		},
 	)
 }

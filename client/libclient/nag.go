@@ -128,7 +128,7 @@ func (n *NagMinder) getServerClientVersionInfo(m MetaContext) error {
 	}
 
 	scv, err := reg.GetClientVersionInfo(m.Ctx(), proto.ClientVersionExt{
-		Vers:            core.CurrentClientVersion,
+		Vers:            core.CurrentSoftwareVersion,
 		LinkerVersion:   LinkerVersion,
 		LinkerPackaging: LinkerPackaging,
 	})
@@ -152,11 +152,11 @@ func (n *NagMinder) checkClientCriticallyOutdated(m MetaContext) (bool, error) {
 	if n.scv.Min == nil {
 		return false, nil
 	}
-	diff := n.scv.Min.Cmp(core.CurrentClientVersion)
+	diff := n.scv.Min.Cmp(core.CurrentSoftwareVersion)
 	if diff > 0 {
 		n.res = append(n.res, lcl.NewUnifiedNagWithClientversioncritical(
 			lcl.UpgradeNagInfo{
-				Agent:  core.CurrentClientVersion,
+				Agent:  core.CurrentSoftwareVersion,
 				Server: *n.scv,
 			},
 		),
@@ -168,7 +168,7 @@ func (n *NagMinder) checkClientCriticallyOutdated(m MetaContext) (bool, error) {
 
 func (n *NagMinder) checkAgentVersionClash(m MetaContext) (bool, error) {
 
-	diff := core.CurrentClientVersion.Cmp(n.CliVersion.Vers)
+	diff := core.CurrentSoftwareVersion.Cmp(n.CliVersion.Vers)
 	if diff == 0 {
 		return false, nil
 	}
@@ -186,7 +186,7 @@ func (n *NagMinder) checkAgentVersionClash(m MetaContext) (bool, error) {
 
 	n.res = append(n.res, lcl.NewUnifiedNagWithClientversionclash(
 		lcl.CliVersionPair{
-			Agent: core.CurrentClientVersion,
+			Agent: core.CurrentSoftwareVersion,
 			Cli:   n.CliVersion.Vers,
 		},
 	),
@@ -252,7 +252,7 @@ func (n *NagMinder) checkUpgradeAvailable(m MetaContext) (bool, error) {
 		return false, nil
 	}
 
-	diff := n.scv.Newest.Cmp(core.CurrentClientVersion)
+	diff := n.scv.Newest.Cmp(core.CurrentSoftwareVersion)
 
 	// Ignore the case of the client being newer than what the server
 	// says is possible. Maybe the client is trying a test build.
@@ -290,7 +290,7 @@ func (n *NagMinder) checkUpgradeAvailable(m MetaContext) (bool, error) {
 	n.res = append(n.res,
 		lcl.NewUnifiedNagWithClientversionupgradeavailable(
 			lcl.UpgradeNagInfo{
-				Agent:  core.CurrentClientVersion,
+				Agent:  core.CurrentSoftwareVersion,
 				Server: *n.scv,
 			},
 		),

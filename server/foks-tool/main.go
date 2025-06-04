@@ -15,6 +15,10 @@ func AddCmd(cmd shared.CLIApp) {
 	cmds = append(cmds, cmd)
 }
 
+var (
+	LinkerVersion = "unknown"
+)
+
 func newRootCmd() *shared.RootCommand {
 	var ret shared.RootCommand
 	ret.Cmd = &cobra.Command{
