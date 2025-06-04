@@ -297,7 +297,7 @@ func (c *AgentConn) CheckArgHeader(ctx context.Context, h lcl.Header) error {
 func (c *AgentConn) MakeResHeader() lcl.Header {
 	return lcl.NewHeaderWithV1(
 		lcl.HeaderV1{
-			Semver: core.CurrentClientVersion,
+			Semver: core.CurrentSoftwareVersion,
 		},
 	)
 }

@@ -35,7 +35,7 @@ services.
 Many applications can be built on top of this primitive but best suited are those
 that share encrypted, persistent information across groups of users with multiple
 devices. For instance, files and git hosting.`,
-		Version: core.CurrentClientVersion.String(),
+		Version: core.CurrentSoftwareVersion.String(),
 	}
 }
 
@@ -62,7 +62,7 @@ func versionCmd(m libclient.MetaContext) *cobra.Command {
 		Short: "Print the version number of foks",
 		Long:  "Print the version number of foks",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("foks version %s\n", core.CurrentClientVersion.String())
+			fmt.Printf("foks version %s\n", core.CurrentSoftwareVersion.String())
 			if verbose {
 				fmt.Printf(" - commit: %s\n", libclient.LinkerVersion)
 				fmt.Printf(" - protocol compatibility version: %d\n", core.CurrentCompatibilityVersion)

@@ -35,7 +35,7 @@ func checkUnifiedNags(m libclient.MetaContext, withRateLimit bool) (*lcl.Unified
 	info, err := cli.GetUnifiedNags(m.Ctx(), lcl.GetUnifiedNagsArg{
 		WithRateLimit: withRateLimit,
 		Cv: proto.ClientVersionExt{
-			Vers:            core.CurrentClientVersion,
+			Vers:            core.CurrentSoftwareVersion,
 			LinkerVersion:   libclient.LinkerVersion,
 			LinkerPackaging: libclient.LinkerPackaging,
 		},

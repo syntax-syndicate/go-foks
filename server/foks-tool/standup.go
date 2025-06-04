@@ -2,12 +2,17 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -30,6 +35,7 @@ import (
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/server/shared"
 	"github.com/jackc/pgx/v5"
+	"github.com/manifoldco/promptui"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 	"github.com/vbauerster/mpb/v8"
@@ -54,6 +60,15 @@ const foksTool = "ghcr.io/foks-proj/foks-tool:latest"
 const postgresContainerName = "postgresql"
 const defPostgresPort = 5432
 const logfile = "standup.log"
+const defLocalPostgresPort = 54321
+const defHttpPort = 80
+
+var promptTemplates = promptui.PromptTemplates{
+	Prompt:  "- {{ . }} ",
+	Valid:   "✔ {{ . | green }} ",
+	Invalid: "- {{ . | red }} ",
+	Success: "✔ {{ . | green }} ",
+}
 
 type StandupStatus struct {
 	Sc    proto.StatusCode `json:"sc"`
@@ -86,6 +101,7 @@ type StandupCmd struct {
 	dbport        int
 	httpLocalPort int
 	force         bool
+	interactive   bool
 }
 
 func (s *StandupCmd) CobraConfig() *cobra.Command {
@@ -99,9 +115,10 @@ docker-compose up`,
 		SilenceErrors: true,
 	}
 	ret.Flags().StringVarP(&s.hostname, "hostname", "H", "", "hostname of the FOKS server")
-	ret.Flags().IntVar(&s.dbport, "db-port", 54321, "port for the database")
+	ret.Flags().IntVar(&s.dbport, "db-port", defLocalPostgresPort, "port for the database")
 	ret.Flags().BoolVarP(&s.force, "force", "f", false, "force overwrite even if files already exist")
-	ret.Flags().IntVar(&s.httpLocalPort, "http-local-port", 80, "port to listen for HTTP requests on (default: 80)")
+	ret.Flags().IntVar(&s.httpLocalPort, "http-local-port", defHttpPort, "port to listen for HTTP requests on")
+	ret.Flags().BoolVar(&s.interactive, "interactive", true, "run in interactive mode, prompting for user input")
 	return ret
 }
 
@@ -109,21 +126,147 @@ func (s *StandupCmd) CheckArgs(args []string) error {
 	if len(args) != 0 {
 		return core.BadArgsError("no args allowed")
 	}
-	if s.hostname == "" {
-		return core.BadArgsError("hostname is required")
+	if s.interactive {
+		if s.dbport != 54321 || s.httpLocalPort != 80 || s.hostname != "" {
+			return core.BadArgsError("in interactive mode, do not specify --db-port, --http-local-port or --hostname; they will be prompted for")
+		}
+	} else {
+		if s.hostname == "" {
+			return core.BadArgsError("hostname is required")
+		}
 	}
 	return nil
 }
 
+func (s *StandupCmd) getHostname(m shared.MetaContext) error {
+	prompt := promptui.Prompt{
+		Label: "🏠 Hostname:",
+		Validate: func(input string) error {
+			if input == "" {
+				return errors.New("hostname cannot be empty")
+			}
+			// Basic hostname validation - alphanumeric, dots, and hyphens
+			if !regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$`).MatchString(input) {
+				return errors.New("hostname must be alphanumeric with optional dots and hyphens")
+			}
+			return nil
+		},
+		Templates: &promptTemplates,
+	}
+	res, err := prompt.Run()
+	if err != nil {
+		return err
+	}
+	s.hostname = res
+	return nil
+}
+
+func (s *StandupCmd) getHttpLocalPort(m shared.MetaContext) error {
+	prompt := promptui.Prompt{
+		Label: fmt.Sprintf("🌐 HTTP Local Port (default: %d):", defHttpPort),
+		Validate: func(input string) error {
+			if input == "" {
+				return nil
+			}
+			port, err := strconv.ParseInt(input, 10, 0)
+			if err != nil {
+				return errors.New("port must be an integer")
+			}
+			if port < 1 || port > 65535 {
+				return errors.New("port must be between 1 and 65535")
+			}
+			return nil
+		},
+		Templates: &promptTemplates,
+	}
+	res, err := prompt.Run()
+	if err != nil {
+		return err
+	}
+	if res == "" {
+		s.httpLocalPort = defHttpPort
+		return nil
+	}
+	port, err := strconv.ParseInt(res, 10, 0)
+	if err != nil {
+		return err
+	}
+	s.httpLocalPort = int(port)
+	return nil
+}
+
+func (s *StandupCmd) getDbPort(m shared.MetaContext) error {
+	prompt := promptui.Prompt{
+		Label: fmt.Sprintf("🗄️  Database Port (default: %d):", defLocalPostgresPort),
+		Validate: func(input string) error {
+			if input == "" {
+				return nil
+			}
+			port, err := strconv.ParseInt(input, 10, 0)
+			if err != nil {
+				return errors.New("port must be an integer")
+			}
+			if port < 1 || port > 65535 {
+				return errors.New("port must be between 1 and 65535")
+			}
+			return nil
+		},
+		Templates: &promptTemplates,
+	}
+	res, err := prompt.Run()
+	if err != nil {
+		return err
+	}
+	if res == "" {
+		s.dbport = defLocalPostgresPort
+		return nil
+	}
+	port, err := strconv.ParseInt(res, 10, 0)
+	if err != nil {
+		return err
+	}
+	s.dbport = int(port)
+	return nil
+}
+
+func (s *StandupCmd) runInteractive(m shared.MetaContext) error {
+	err := s.getHostname(m)
+	if err != nil {
+		return err
+	}
+	err = s.getHttpLocalPort(m)
+	if err != nil {
+		return err
+	}
+	err = s.getDbPort(m)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("🔄 Starting standup with the following parameters:\n")
+	fmt.Printf("  - 🏠 Hostname: %s\n", s.hostname)
+	fmt.Printf("  - 🌐 HTTP Local Port: %d\n", s.httpLocalPort)
+	fmt.Printf("  - 🗄️  Database Port: %d\n", s.dbport)
+	return nil
+}
+
 func (s *StandupCmd) Run(m shared.MetaContext) error {
+	m.G().ShuntLogToFile(logfile)
+	m.Infow("starting up", "pid", os.Getpid())
+
+	if s.interactive {
+		err := s.runInteractive(m)
+		if err != nil {
+			return err
+		}
+	}
+
 	eng := &StandupEng{
 		hostname:      proto.Hostname(s.hostname),
 		dbPort:        s.dbport,
 		httpLocalPort: s.httpLocalPort,
 		force:         s.force,
 	}
-	m.G().ShuntLogToFile(logfile)
-	m.Infow("starting up", "pid", os.Getpid())
+
 	return eng.runAndCleanup(m)
 }
 
@@ -614,7 +757,7 @@ func (e *StandupEng) getDockerCli(m shared.MetaContext) (*client.Client, error) 
 
 var phaseCounter = 1
 
-const totalPhases = 15
+const totalPhases = 16
 
 func (e *StandupEng) phase(which string, getErr func() error) func() {
 
@@ -880,7 +1023,7 @@ func (e *StandupEng) databaseImagePull(m shared.MetaContext) (err error) {
 			return err
 		}
 
-		// Docker sometimes emits messages without an "id" (e.g. “Pulling from …” or “Digest: …”).
+		// Docker sometimes emits messages without an "id" (e.g. "Pulling from …" or "Digest: …").
 		// Skip those, since we only create bars for actual layers.
 		if msg.ID == "" {
 			continue
@@ -912,8 +1055,8 @@ func (e *StandupEng) databaseImagePull(m shared.MetaContext) (err error) {
 			bars[msg.ID] = bar
 		}
 		// Compute how many bytes we need to increment:
-		// Docker’s ProgressDetail.Current is absolute, but bar.Current() is how many
-		// we’ve already reported. So delta = newCurrent - oldCurrent.
+		// Docker's ProgressDetail.Current is absolute, but bar.Current() is how many
+		// we've already reported. So delta = newCurrent - oldCurrent.
 		old := bar.Current()
 		delta := int(current - old)
 		if delta > 0 {
@@ -1470,9 +1613,74 @@ func (e *StandupEng) runAndCleanup(m shared.MetaContext) (err error) {
 	return nil
 }
 
-func (e *StandupEng) run(m shared.MetaContext) (err error) {
+func (e *StandupEng) testHttp(m shared.MetaContext) (err error) {
+	defer e.phase("testing HTTP connectivity", func() error { return err })()
 
+	// Generate random test token
+	token, err := core.RandomBase36String(16)
+	if err != nil {
+		return err
+	}
+
+	addr := fmt.Sprintf("0.0.0.0:%d", e.httpLocalPort)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	// Create test server
+	server := &http.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/test" && r.Header.Get("X-Test-Token") == token {
+				w.Write([]byte("ok"))
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}),
+	}
+
+	// Start server in background
+	go func() {
+		err := server.Serve(listener)
+		if err != nil && err != http.ErrServerClosed {
+			m.Errorw("test server error", "err", err)
+		}
+		listener.Close()
+	}()
+
+	// Make test request
+	url := fmt.Sprintf("http://%s:%d/test", e.hostname, e.httpLocalPort)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create test request: %w", err)
+	}
+	req.Header.Set("X-Test-Token", token)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("test request failed with status %d", resp.StatusCode)
+	}
+
+	// Shutdown server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+
+	return nil
+}
+
+func (e *StandupEng) run(m shared.MetaContext) (err error) {
 	err = e.readStatus(m)
+	if err != nil {
+		return err
+	}
+	err = e.testHttp(m)
 	if err != nil {
 		return err
 	}
@@ -1549,6 +1757,7 @@ func (e *StandupEng) run(m shared.MetaContext) (err error) {
 		return err
 	}
 	m.Infow("setup successful")
+	fmt.Printf("✉️  Invite code: %s\n", e.inviteCode)
 	fmt.Printf("🫡 Success! Run `docker-compose up` to start your FOKS server\n")
 	return nil
 }

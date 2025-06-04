@@ -134,7 +134,7 @@ func TestVersionNags(t *testing.T) {
 
 	assertNagType(lcl.NagType_ClientVersionCritical, nil)
 
-	cfg.Data.Client.ClientVersion_.MinVersion_ = wrapVers(core.CurrentClientVersion)
+	cfg.Data.Client.ClientVersion_.MinVersion_ = wrapVers(core.CurrentSoftwareVersion)
 
 	assertNagType(lcl.NagType_TooFewDevices, nil)
 
