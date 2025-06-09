@@ -92,7 +92,7 @@ EOF
 cat <<EOF >pkg/choco/tools/chocolateyinstall.ps1
 \$toolsDir    = "\$(Split-Path -Parent \$MyInvocation.MyCommand.Definition)"
 
-$packageArgs = @{
+\$packageArgs = @{
   packageName    = 'foks'
   fileType       = 'zip'
   url            = '${url32}'
@@ -101,7 +101,7 @@ $packageArgs = @{
   checksum       = '${pkg32sha}'
   checksumType   = 'sha256'
   checksumType64 = 'sha256'
-  unzipLocation  = '\$toolsDir'
+  unzipLocation  = \$toolsDir
 }
 
 Install-ChocolateyZipPackage @packageArgs
