@@ -72,6 +72,7 @@ type TerminalUIer interface {
 	Printf(fmt string, args ...interface{})
 	OutputStream() io.WriteCloser
 	ErrorStream() IOStreamer
+	IsOutputTTY() bool
 }
 
 type GetPassphraseFlags struct {

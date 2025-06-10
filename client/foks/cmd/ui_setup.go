@@ -26,6 +26,9 @@ type TerminalUI struct{}
 func (t *TerminalUI) Printf(f string, args ...interface{}) { fmt.Printf(f, args...) }
 func (t *TerminalUI) OutputStream() io.WriteCloser         { return os.Stdout }
 func (t *TerminalUI) ErrorStream() libclient.IOStreamer    { return libclient.WrappedStderr }
+func (t *TerminalUI) IsOutputTTY() bool {
+	return isatty.IsTerminal(os.Stdout.Fd())
+}
 
 func SetUIs(m libclient.MetaContext) {
 	uis := simple_ui.Setup()

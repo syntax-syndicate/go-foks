@@ -338,6 +338,10 @@ func (t *terminalUI) reset() {
 	t.b.Reset()
 }
 
+func (t *terminalUI) IsOutputTTY() bool {
+	return true
+}
+
 var _ libclient.TerminalUIer = (*terminalUI)(nil)
 
 func (a *testAgent) runCmd(
