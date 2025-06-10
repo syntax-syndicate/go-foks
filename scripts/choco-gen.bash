@@ -94,7 +94,6 @@ cat <<EOF >pkg/choco/tools/chocolateyinstall.ps1
 
 \$packageArgs = @{
   packageName    = 'foks'
-  fileType       = 'zip'
   url            = '${url32}'
   url64          = '${url64}'
   checksum64     = '${pkg64sha}'
