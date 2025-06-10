@@ -126,15 +126,24 @@ docker-compose up`,
 	return ret
 }
 
+func parseViewershipMode(s string) (proto.ViewershipMode, error) {
+	var tmp proto.ViewershipMode
+	err := tmp.ImportFromDB(s)
+	if err == nil && (tmp == proto.ViewershipMode_Open || tmp == proto.ViewershipMode_Closed) {
+		return tmp, nil
+	}
+	var zed proto.ViewershipMode
+	return zed, core.BadArgsError("invalid value for viewership; must be 'open' or 'closed'")
+}
+
 func (s *StandupCmd) setViewership() error {
 
 	if s.viewershipStr == "" {
 		s.viewershipStr = "open"
 	}
-	var tmp proto.ViewershipMode
-	err := tmp.ImportFromCLI(s.viewershipStr)
+	tmp, err := parseViewershipMode(s.viewershipStr)
 	if err != nil {
-		return core.BadArgsError("invalid value for --viewership; must be 'open' or 'closed'")
+		return err
 	}
 	s.viewership = &tmp
 	return nil
@@ -274,7 +283,7 @@ func (s *StandupCmd) getViewshipMode(m shared.MetaContext) error {
 	switch i {
 	case 0:
 		s.viewershipStr = "open"
-		tmp := proto.ViewershipMode_OpenToAll
+		tmp := proto.ViewershipMode_Open
 		s.viewership = &tmp
 	case 1:
 		s.viewershipStr = "closed"

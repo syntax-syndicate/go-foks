@@ -37,10 +37,9 @@ func (i *ViewCmd) CheckArgs(args []string) error {
 		return core.BadArgsError("no args allowed")
 	}
 	if i.SetTo != "" {
-		var tmp proto.ViewershipMode
-		err := tmp.ImportFromCLI(i.SetTo)
+		tmp, err := parseViewershipMode(i.SetTo)
 		if err != nil {
-			return core.BadArgsError("invalid value for --set; must be 'open' or 'closed'")
+			return err
 		}
 		i.Set = &tmp
 	}
