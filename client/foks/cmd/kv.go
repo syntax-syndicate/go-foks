@@ -331,7 +331,7 @@ func kvGet(m libclient.MetaContext, top *cobra.Command) {
 	var force bool
 	var forceOutput bool
 	quickKVCmd(m, top,
-		"get <key> <output-file>", nil,
+		"get <key> [<output-file>]", nil,
 		"get a key-value store entry",
 		core.MustRewrap(
 			`Get a key-value store entry. Supply a key and an optional output file. If
