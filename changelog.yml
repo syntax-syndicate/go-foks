@@ -7,6 +7,8 @@ changelog:
     stable: false
     date: none-yet
     changes:
+      - desc: Better text-wrapping in help docs
+        closes: ["#102"]
       - desc: Better errors messages on windows for agent being dead
         closes: ["#94"]
       - desc: FOKS_HOME variable is like HOME but doesn't mess with system HOME
