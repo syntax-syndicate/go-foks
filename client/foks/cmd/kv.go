@@ -372,19 +372,33 @@ This behavior can be overridden by specifying the --force-output flag. `, 0),
 func kvPut(m libclient.MetaContext, top *cobra.Command) {
 	var isFile bool
 	quickKVCmd(m, top,
-		"put <key> <value>", nil,
+		"put <key> [<value>]", nil,
 		"put a key-value store entry",
-		"Put a key-value store entry",
+		libterm.MustRewrapSense(
+			`Put a key-value pair to the store. Supply a key and an option value.
+If no value is given, one is read from standard input. If a value is given, it is
+interpreted as a string to insert into the store, unless the --file flag is specified.
+In that case, the value is interepreted as a file, whose content is read and then
+stored under the given key.`,
+			0,
+		),
 		quickKVOpts{SupportWriteRole: true, SupportReadRole: true, SupportOverwrite: true},
 		func(cmd *cobra.Command) {
 			cmd.Flags().BoolVarP(&isFile, "file", "f", false, "read value from file (or - if from stdin)")
 		},
 		func(arg []string, cfg lcl.KVConfig, cli lcl.KVClient) error {
-			if len(arg) != 2 {
-				return ArgsError("expected exactly 2 arguments -- the key and the value")
+			if len(arg) != 2 && len(arg) != 1 {
+				return ArgsError("expected exactly 1 or 2 arguments -- the key and an optional value")
+			}
+			var val string
+			if len(arg) == 1 {
+				isFile = true
+				val = "-"
+			} else {
+				val = arg[1]
 			}
 			path := makeKVPath(arg[0])
-			err := kvPutWithArgs(m, cfg, cli, path, arg[1], isFile)
+			err := kvPutWithArgs(m, cfg, cli, path, val, isFile)
 			if err != nil {
 				return err
 			}
