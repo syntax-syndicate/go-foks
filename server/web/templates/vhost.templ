@@ -157,7 +157,7 @@ templ vhostDetailsError(a *lib.AdminPageData, r *lib.VHostRow) {
 templ vhostStage1or2(a *lib.AdminPageData, r *lib.VHostRow) {
 	<div class="vhost-details-row">
 		<div
-			class="my-3 ml-4 mr-1 bg-green-100 dark:bg-green-900/30 border border-green-500 dark:border-green-400 p-2 text-xs rounded dark:text-green-100"
+			class="my-3 ml-4 mr-1 bg-green-100 dark:bg-green-900/30 border border-green-500 dark:border-green-400 p-2 text-xs rounded-sm dark:text-green-100"
 			id="vhost-setup-status"
 		>
 			switch  {
@@ -200,7 +200,7 @@ templ vhostStage1or2(a *lib.AdminPageData, r *lib.VHostRow) {
 			<div class="text-center">
 				<button
 					id="button-check-vhost"
-					class="rounded border border-green-500 bg-green-100 p-1 text-center px-3 text-sm mb-1 w-32 h-8 responsive-button plan-button whitespace-nowrap"
+					class="rounded-sm border border-green-500 bg-green-100 p-1 text-center px-3 text-sm mb-1 w-32 h-8 responsive-button plan-button whitespace-nowrap"
 					hx-get={ "/admin/vhost/" + r.VHostID.String() + "/check" }
 					hx-swap="innerHTML"
 					hx-target="main#admin-main"
@@ -216,7 +216,7 @@ templ vhostStage1or2(a *lib.AdminPageData, r *lib.VHostRow) {
 			</div>
 			<div class="text-center">
 				<button
-					class="rounded border border-red-500 bg-red-400 p-1 text-center text-white px-3 text-sm mb-1 w-32 h-8 responsive-button plan-button whitespace-nowrap"
+					class="rounded-sm border border-red-500 bg-red-400 p-1 text-center text-white px-3 text-sm mb-1 w-32 h-8 responsive-button plan-button whitespace-nowrap"
 					hx-delete={ "admin/vhost/" + r.VHostID.String() }
 					hx-target="main#admin-main"
 					hx-swap="innerHTML"
@@ -269,7 +269,7 @@ templ VHostInviteCodeRow(a *lib.AdminPageData, r *lib.VHostRow, ic shared.MultiU
 					hx-delete={ "/admin/vhost/" + r.Id.Id.String() + "/invite/" + ic.Code.String() }
 					hx-swap="outerHTML"
 					hx-target={ "div#invite-code-row-" + ic.Code.String() }
-					class="responsive-button delete-invite-button disabled:opacity:20 rounded bg-gray-200 p-0 text-center text-sm w-4 h-4"
+					class="responsive-button delete-invite-button disabled:opacity:20 rounded-sm bg-gray-200 p-0 text-center text-sm w-4 h-4"
 					hx-indicator={ "#delete-invite-spinner-" + ic.Code.String() + ",#delete-invite-button-" + ic.Code.String() }
 				>
 					<span>
@@ -331,7 +331,7 @@ templ VHostChangeUserViewershipForm(a *lib.AdminPageData, r *lib.VHostRow) {
 		// Don't swap out the button with the hx-patch result, since it causes a blip/flicker
 		<button
 			id="submit"
-			class="patch-viewership rounded bg-sky-500 p-1 text-center text-white text-xs responsive-button w-16 h-6 mb-1 ml-2"
+			class="patch-viewership rounded-sm bg-sky-500 p-1 text-center text-white text-xs responsive-button w-16 h-6 mb-1 ml-2"
 		>
 			<span>update</span>
 			<img
@@ -396,7 +396,7 @@ templ VHostSSOFormFields(a *lib.AdminPageData, r *lib.VHostRow) {
 				<input
 					type="text"
 					name="sso-oauth2-config-url"
-					class="p-1 flex-1 border rounded-md w-full text-sm"
+					class="p-1 flex-1 border rounded-sm w-full text-sm"
 					placeholder="e.g., http://x.co/application/o/myApp/.well-known/openid-configuration"
 					value={ r.Details.OAuth2SSOConfigURL() }
 				/>
@@ -410,7 +410,7 @@ templ VHostSSOFormFields(a *lib.AdminPageData, r *lib.VHostRow) {
 				<input
 					type="text"
 					name="sso-oauth2-client-id"
-					class="p-1 flex-1 border rounded-md w-full text-sm"
+					class="p-1 flex-1 border rounded-sm w-full text-sm"
 					placeholder="e.g., x2dp9lPJoWQ4tuxX4nbt"
 					value={ r.Details.OAuth2SSOClientID() }
 				/>
@@ -424,7 +424,7 @@ templ VHostSSOFormFields(a *lib.AdminPageData, r *lib.VHostRow) {
 				<input
 					type="text"
 					name="sso-oauth2-client-secret"
-					class="p-1 flex-1 border rounded-md w-full text-sm"
+					class="p-1 flex-1 border rounded-sm w-full text-sm"
 					placeholder="leave blank for PKCE"
 					value={ r.Details.OAuth2SSOClientSecret() }
 				/>
@@ -436,7 +436,7 @@ templ VHostSSOFormFields(a *lib.AdminPageData, r *lib.VHostRow) {
 			</div>
 			<div class="grow min-w-[20rem] w-auto">
 				<span
-					class="p-1 px-2 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 border rounded-md text-sm"
+					class="p-1 px-2 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 border rounded-sm text-sm"
 					id="sso-callback-url"
 				>
 					{ r.Details.OAuth2CallbackURL.String() }
@@ -448,7 +448,7 @@ templ VHostSSOFormFields(a *lib.AdminPageData, r *lib.VHostRow) {
 				id="sso-submit"
 				name="sso-submit"
 				value="submit"
-				class="put-sso rounded bg-sky-500 p-1 text-center text-white text-xs 
+				class="put-sso rounded-sm bg-sky-500 p-1 text-center text-white text-xs 
 								responsive-button w-16 h-6 mr-3"
 			>
 				<span>update</span>
@@ -461,7 +461,7 @@ templ VHostSSOFormFields(a *lib.AdminPageData, r *lib.VHostRow) {
 				id="sso-disable"
 				name="sso-disable"
 				value="submit"
-				class="put-sso rounded bg-red-400 p-1 text-center text-white text-xs 
+				class="put-sso rounded-sm bg-red-400 p-1 text-center text-white text-xs 
 								responsive-button w-24 h-6"
 			>
 				<span>disable SSO</span>
@@ -479,7 +479,7 @@ templ VHostChangeUserViewershipFormInner(a *lib.AdminPageData, r *lib.VHostRow) 
 		<select
 			id="mode"
 			name="mode"
-			class="bg-slate-200 dark:bg-slate-700 dark:text-slate-200 p-1 px-2 text-xs text-center rounded mb-1 h-6"
+			class="bg-slate-200 dark:bg-slate-700 dark:text-slate-200 p-1 px-2 text-xs text-center rounded-sm mb-1 h-6"
 		>
 			for _, vm := range lib.ValidUserViewershipModes {
 				<option
@@ -620,7 +620,7 @@ templ VHostTableAdd(a *lib.AdminPageData, args *lib.VHostAddArgs) {
 						name="canned-name"
 						placeholder="your-host"
 						type="text"
-						class="text-xs w-32 text-right hostname-input rounded border border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 p-1 hostname"
+						class="text-xs w-32 text-right hostname-input rounded-sm border border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 p-1 hostname"
 						minlength="3"
 						maxlength="80"
 					/>
@@ -628,7 +628,7 @@ templ VHostTableAdd(a *lib.AdminPageData, args *lib.VHostAddArgs) {
 						class="font-black"
 					>.</span>
 					<select
-						class="bg-slate-200 dark:bg-slate-700 dark:text-slate-200 p-1 text-xs rounded"
+						class="bg-slate-200 dark:bg-slate-700 dark:text-slate-200 p-1 text-xs rounded-sm"
 						id="canned-domain"
 						name="canned-domain"
 					>
@@ -646,7 +646,7 @@ templ VHostTableAdd(a *lib.AdminPageData, args *lib.VHostAddArgs) {
 						name="byod"
 						id="full-vanity-hostname"
 						type="text"
-						class="text-xs w-56 text-left hostname-input p-1 border rounded border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+						class="text-xs w-56 text-left hostname-input p-1 border rounded-sm border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
 					/>
 				</div>
 			</div>
@@ -676,7 +676,7 @@ templ VHostTableAdd(a *lib.AdminPageData, args *lib.VHostAddArgs) {
 			>
 				<button
 					id="vhost-submit"
-					class="rounded bg-sky-500 p-1 text-center text-white text-xs responsive-button vhost-button w-10 h-6"
+					class="rounded-sm bg-sky-500 p-1 text-center text-white text-xs responsive-button vhost-button w-10 h-6"
 				>
 					<span>add</span>
 					<img

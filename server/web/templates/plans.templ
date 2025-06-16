@@ -36,7 +36,7 @@ templ showPlan(u *lib.User, up *infra.UserPlan, plan lib.Plan, disabled bool) {
 							<select
 								id={ "price" + plan.Ids.String() }
 								name="price"
-								class="bg-slate-200 dark:bg-slate-700 dark:text-slate-200 p-1 px-2 text-xs text-center rounded mx-1"
+								class="bg-slate-200 dark:bg-slate-700 dark:text-slate-200 p-1 px-2 text-xs text-center rounded-sm mx-1"
 							>
 								for _, price := range plan.Prices {
 									<option
@@ -49,7 +49,7 @@ templ showPlan(u *lib.User, up *infra.UserPlan, plan lib.Plan, disabled bool) {
 						</div>
 						<div class="text-center text-xs font-semibold">
 							<button
-								class={ "rounded bg-sky-500 p-1 text-center text-white mx-2 px-3 plan-" + 
+								class={ "rounded-sm bg-sky-500 p-1 text-center text-white mx-2 px-3 plan-" + 
                                  plan.Verb  + core.Sel(disabled, " disabled", "") }
 								type="submit"
 								disabled?={ disabled }
@@ -142,7 +142,7 @@ templ PreviewProration(d *lib.AdminPageData, pd *shared.ProrationPreviewData) {
 			<button
 				type="submit"
 				name="action"
-				class="rounded bg-sky-500 p-1 text-center text-white mx-2 px-3 text-xs prorate-button responsive-button w-24"
+				class="rounded-sm bg-sky-500 p-1 text-center text-white mx-2 px-3 text-xs prorate-button responsive-button w-24"
 				value="approve"
 			>
 				approve
@@ -155,7 +155,7 @@ templ PreviewProration(d *lib.AdminPageData, pd *shared.ProrationPreviewData) {
 			<button
 				type="submit"
 				name="action"
-				class="rounded bg-gray-500 p-1 text-center text-white mx-2 px-3 text-xs prorate-button responsive-button w-24"
+				class="rounded-sm bg-gray-500 p-1 text-center text-white mx-2 px-3 text-xs prorate-button responsive-button w-24"
 				value="cancel"
 			>
 				cancel
@@ -185,7 +185,7 @@ templ Plans(d *lib.AdminPageData) {
 					class="m-0"
 				>
 					<button
-						class="rounded bg-orange-500 p-1 text-center text-white mx-2 px-3"
+						class="rounded-sm bg-orange-500 p-1 text-center text-white mx-2 px-3"
 						type="submit"
 					>
 						Cancel existing checkout session
@@ -321,7 +321,7 @@ templ managePlanActive(d *lib.AdminPageData) {
 									<input type="hidden" name="subscription_id" value={ d.UserPlan.SubscriptionId.String() }/>
 									<input type="hidden" name="plan_id" value={ d.UserPlan.Plan.Id.String() }/>
 									<button
-										class="rounded bg-slate-400 p-1 text-center text-white px-3 text-sm mb-1 responsive-button w-28 h-8 plan-button"
+										class="rounded-sm bg-slate-400 p-1 text-center text-white px-3 text-sm mb-1 responsive-button w-28 h-8 plan-button"
 										type="submit"
 									>
 										<span class="cancel-plan">Cancel</span>
@@ -353,7 +353,7 @@ templ managePlanActive(d *lib.AdminPageData) {
 									<input type="hidden" name="subscription_id" value={ d.UserPlan.SubscriptionId.String() }/>
 									<input type="hidden" name="plan_id" value={ d.UserPlan.Plan.Id.String() }/>
 									<button
-										class="rounded bg-sky-400 p-1 text-center text-white px-3 text-sm mb-1 w-28 h-8 responsive-button plan-button"
+										class="rounded-sm bg-sky-400 p-1 text-center text-white px-3 text-sm mb-1 w-28 h-8 responsive-button plan-button"
 										type="submit"
 									>
 										<span class="resume-plan">Resume plan</span>
@@ -382,7 +382,7 @@ templ managePlanActive(d *lib.AdminPageData) {
 								class="m-0"
 							>
 								<button
-									class="rounded bg-red-500 p-1 text-center text-white px-3 text-sm mb-1 w-28 h-8 responsive-button plan-button"
+									class="rounded-sm bg-red-500 p-1 text-center text-white px-3 text-sm mb-1 w-28 h-8 responsive-button plan-button"
 									type="submit"
 								>
 									<span>Rage Quit</span>

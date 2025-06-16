@@ -1,13 +1,33 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@source '../../templates/**/*.templ';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 .admin-panel-border {
-    @apply rounded border border-slate-400 dark:border-slate-600 dark:bg-slate-800;
+    @apply rounded-sm border border-slate-400 dark:border-slate-600 dark:bg-slate-800;
 }
 
 .admin-leftbar-tool {
-    @apply admin-panel-border;
+    @apply rounded-sm border border-slate-400 dark:border-slate-600 dark:bg-slate-800;
     @apply p-3 ml-0 sm:mr-2 mb-2 mt-0 text-sm dark:text-slate-200;
 }
 
@@ -58,27 +78,23 @@ button.disabled {
 }
 
 button.standard {
-    @apply text-xs rounded border border-slate-400 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700 dark:text-slate-200;
-}
-
-.standard-line {
-    @apply border-slate-300 dark:border-slate-600;
+    @apply text-xs rounded-sm border border-slate-400 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700 dark:text-slate-200;
 }
 
 .manage-plan-row {
-    @apply p-1 mb-1 standard-line border-b;
+    @apply p-1 mb-1 border-b border-slate-300 dark:border-slate-600;
 }
 
 .plan-manage-box {
-    @apply mb-2 grow min-w-28 max-w-64 border rounded p-3 standard-line;
+    @apply mb-2 grow min-w-28 max-w-64 border rounded-sm p-3 border-slate-300 dark:border-slate-600;
 }
 
 .vhost-details-row {
-    @apply border-b p-1 mb-1 standard-line;
+    @apply border-b p-1 mb-1 border-slate-300 dark:border-slate-600;
 }
 
 .vhost-detail-cell {
-    @apply border-b pb-1 standard-line;
+    @apply border-b pb-1 border-slate-300 dark:border-slate-600;
 }
 
 .is-invalid {
@@ -94,7 +110,7 @@ button:disabled {
 }
 
 div.big-error {
-    @apply bg-red-100 border border-red-500 p-2 text-xs rounded dark:bg-red-900 dark:border-red-400 dark:text-red-100;
+    @apply bg-red-100 border border-red-500 p-2 text-xs rounded-sm dark:bg-red-900 dark:border-red-400 dark:text-red-100;
 }
 
 div.collapsible div.collapse-target {
@@ -108,4 +124,8 @@ div.collapsible div.collapse-target.open {
 
 div.invite-disabled span {
     @apply opacity-50;
+}
+
+.standard-line {
+    @apply border-slate-300 dark:border-slate-600;
 }
