@@ -48,23 +48,35 @@ ci:
 ci-yubi-destructive:
 	bash ci.bash --yubi-destructive
 
-.PHONY: macos-arm64-zip-release
+.PHONY: brew-arm64
+brew-arm64: build/darwin-brew-arm64/foks.zip
+	./scripts/macos-notary.bash $<
+	@echo "brew arm64 release is ready: $<"
+	./scripts/macos-verify.bash $<
+
+.PHONY: brew-amd64
+brew-amd64: build/darwin-brew-amd64/foks.zip
+	./scripts/macos-notary.bash $<
+	@echo "brew amd64 release is ready: $<"
+	./scripts/macos-verify.bash $<
+
+.PHONY: darwin-arm64-zip-release
 darwin-arm64-zip-release: build/darwin-arm64/foks.zip
 	./scripts/macos-notary.bash $<
 	@echo "macOS arm64 release is ready: $<"
 	./scripts/macos-verify.bash $<
 
-.PHONY: macos-arm64-zip-release-verify
+.PHONY: darwin-arm64-zip-release-verify
 darwin-arm64-zip-release-verify:
 	./scripts/macos-verify.bash build/darwin-arm64/foks.zip
 
-.PHONY: macos-amd64-zip-release
+.PHONY: darwin-amd64-zip-release
 darwin-amd64-zip-release: build/darwin-amd64/foks.zip
 	./scripts/macos-notary.bash $<
 	@echo "macOS amd64 release is ready: $<"
 	./scripts/macos-verify.bash $<
 
-.PHONY: macos-amd64-zip-release-verify
+.PHONY: darwin-amd64-zip-release-verify
 darwin-amd64-zip-release-verify:
 	./scripts/macos-verify.bash build/darwin-amd64/foks.zip
 
@@ -95,6 +107,10 @@ rpm: rpm-arm64 rpm-amd64
 .PHONY: darwin-zip
 darwin-zip: darwin-arm64-zip-release darwin-amd64-zip-release
 	@echo "macOS zip packages are ready in the build directory"
+
+.PHONYT: brew
+brew: brew-arm64 brew-amd64
+	@echo "Homebrew zip packages are ready in the build directory"
 
 .PHONY: choco
 choco: choco-amd64 choco-x86
@@ -136,13 +152,23 @@ build/foks.linux-amd64.stripped: proto
 
 build/darwin-amd64/foks: proto
 	./scripts/macos-compile.bash -p amd64 -s
+build/darwin-brew-amd64/foks: proto
+	./scripts/macos-compile.bash -p amd64 -s -b
 build/darwin-amd64/foks.zip: build/darwin-amd64/foks
 	./scripts/macos-sign.bash $<
 	./scripts/macos-ditto.bash $$(dirname $<)
+build/darwin-brew-amd64/foks.zip: build/darwin-brew-amd64/foks
+	./scripts/macos-sign.bash $<
+	./scripts/macos-ditto.bash $$(dirname $<)
 
+build/darwin-brew-arm64/foks: proto
+	./scripts/macos-compile.bash -p arm64 -s -b
 build/darwin-arm64/foks: proto
 	./scripts/macos-compile.bash -p arm64 -s
 build/darwin-arm64/foks.zip: build/darwin-arm64/foks
+	./scripts/macos-sign.bash $<
+	./scripts/macos-ditto.bash $$(dirname $<)
+build/darwin-brew-arm64/foks.zip: build/darwin-brew-arm64/foks
 	./scripts/macos-sign.bash $<
 	./scripts/macos-ditto.bash $$(dirname $<)
 
