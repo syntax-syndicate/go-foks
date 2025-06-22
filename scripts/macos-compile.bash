@@ -14,6 +14,7 @@ brew=0
 lcl=0
 plat="arm64"
 packaging="darwin-zip"
+dirtag=""
 
 # take two arguments: -p which can be arm64 or amd64, and also
 # -s, which is a boolean flag that means to strip the binary
@@ -29,6 +30,7 @@ while getopts ":p:sbl" opt; do
         b) 
             brew=1
             packaging="brew"
+            dirtag="-brew"
             ;;
         l)
             lcl=1
@@ -60,7 +62,7 @@ echo "  - stripping: $strip"
 echo "  - brew: $brew"
 echo "  - local: $lcl"
 
-targ="build/darwin-${plat}/foks"
+targ="build/darwin${dirtag}-${plat}/foks"
 mkdir -p $(dirname ${targ})
 
 src="./client/foks"
