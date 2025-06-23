@@ -5,7 +5,7 @@ changelog:
   - version: 0.0.21
     urgency: low
     stable: false
-    date: none-yet
+    date: 2025-06-23 12:00:00 -0400
     changes:
       - desc: Better text-wrapping in help docs
         closes: ["#102"]
