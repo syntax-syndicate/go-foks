@@ -9,6 +9,8 @@ changelog:
     changes:
       - desc: cli - log rotation for agent logs (not for error, just for output)
         closes: []
+      - desc: logsend feature for debugging problems
+        closes: ["#119"]
   - version: 0.0.21
     urgency: low
     stable: false

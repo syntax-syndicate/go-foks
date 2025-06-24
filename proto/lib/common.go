@@ -1670,6 +1670,41 @@ func (c CKSKeyID) Bytes() []byte {
 	return (c)[:]
 }
 
+type LogSendID [17]byte
+type LogSendIDInternal__ [17]byte
+
+func (l LogSendID) Export() *LogSendIDInternal__ {
+	tmp := (([17]byte)(l))
+	return ((*LogSendIDInternal__)(&tmp))
+}
+func (l LogSendIDInternal__) Import() LogSendID {
+	tmp := ([17]byte)(l)
+	return LogSendID((func(x *[17]byte) (ret [17]byte) {
+		if x == nil {
+			return ret
+		}
+		return *x
+	})(&tmp))
+}
+
+func (l *LogSendID) Encode(enc rpc.Encoder) error {
+	return enc.Encode(l.Export())
+}
+
+func (l *LogSendID) Decode(dec rpc.Decoder) error {
+	var tmp LogSendIDInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*l = tmp.Import()
+	return nil
+}
+
+func (l LogSendID) Bytes() []byte {
+	return (l)[:]
+}
+
 type ID16Type int
 
 const (
@@ -1686,7 +1721,8 @@ const (
 	ID16Type_OAuth2Session    ID16Type = 51
 	ID16Type_SSOConfig        ID16Type = 50
 	ID16Type_CKSKey           ID16Type = 49
-	ID16Type_MaxEntityType    ID16Type = 48
+	ID16Type_LogSend          ID16Type = 48
+	ID16Type_MaxEntityType    ID16Type = 47
 )
 
 var ID16TypeMap = map[string]ID16Type{
@@ -1703,7 +1739,8 @@ var ID16TypeMap = map[string]ID16Type{
 	"OAuth2Session":    51,
 	"SSOConfig":        50,
 	"CKSKey":           49,
-	"MaxEntityType":    48,
+	"LogSend":          48,
+	"MaxEntityType":    47,
 }
 var ID16TypeRevMap = map[ID16Type]string{
 	61: "Plan",
@@ -1719,7 +1756,8 @@ var ID16TypeRevMap = map[ID16Type]string{
 	51: "OAuth2Session",
 	50: "SSOConfig",
 	49: "CKSKey",
-	48: "MaxEntityType",
+	48: "LogSend",
+	47: "MaxEntityType",
 }
 
 type ID16TypeInternal__ ID16Type
@@ -1833,6 +1871,41 @@ func (o *OAuth2SessionIDString) Decode(dec rpc.Decoder) error {
 }
 
 func (o OAuth2SessionIDString) Bytes() []byte {
+	return nil
+}
+
+type LogSendIDString string
+type LogSendIDStringInternal__ string
+
+func (l LogSendIDString) Export() *LogSendIDStringInternal__ {
+	tmp := ((string)(l))
+	return ((*LogSendIDStringInternal__)(&tmp))
+}
+func (l LogSendIDStringInternal__) Import() LogSendIDString {
+	tmp := (string)(l)
+	return LogSendIDString((func(x *string) (ret string) {
+		if x == nil {
+			return ret
+		}
+		return *x
+	})(&tmp))
+}
+
+func (l *LogSendIDString) Encode(enc rpc.Encoder) error {
+	return enc.Encode(l.Export())
+}
+
+func (l *LogSendIDString) Decode(dec rpc.Decoder) error {
+	var tmp LogSendIDStringInternal__
+	err := dec.Decode(&tmp)
+	if err != nil {
+		return err
+	}
+	*l = tmp.Import()
+	return nil
+}
+
+func (l LogSendIDString) Bytes() []byte {
 	return nil
 }
 

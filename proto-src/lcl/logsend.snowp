@@ -1,0 +1,27 @@
+@0xb2998bcf3537010f;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+struct LogSendSet {
+    files @0 : List(lib.LocalFSPath);
+}
+
+struct LogSendRes {
+    id @0 : lib.LogSendID;
+    host @1 : lib.TCPAddr;
+}
+
+protocol LogSend
+    errors lib.Status
+    argHeader Header
+    resHeader Header @0xfeb332f6 {
+
+    logSendList @1 (
+        n @0 : Uint
+    ) -> LogSendSet;
+
+    logSend @2 (
+        set @0 : LogSendSet
+    ) -> LogSendRes;
+
+}

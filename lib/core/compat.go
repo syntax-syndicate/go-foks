@@ -152,3 +152,12 @@ func NewBeaconClient(gcli rpc.GenericClient, wcw WithContextWarner) rem.BeaconCl
 		CheckResHeader: MakeCheckProtoResHeader(wcw),
 	}
 }
+
+func NewLogSendClient(gcli rpc.GenericClient, wcw WithContextWarner) rem.LogSendClient {
+	return rem.LogSendClient{
+		Cli:            gcli,
+		ErrorUnwrapper: StatusToError,
+		MakeArgHeader:  MakeProtoHeader,
+		CheckResHeader: MakeCheckProtoResHeader(wcw),
+	}
+}

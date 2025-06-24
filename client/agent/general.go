@@ -157,6 +157,8 @@ func (c *AgentConn) PutServer(ctx context.Context, arg lcl.PutServerArg) (proto.
 	if err != nil {
 		return ret, err
 	}
+	// In case we need to debug a failed login, we hold onto the last registered server.
+	m.G().SetLastServer(prb)
 	sess.homeServer = prb
 	sess.ssoCfg = cfg.Sso
 	sess.regServerType = arg.Typ
