@@ -1638,7 +1638,9 @@ func (u UID) StringErr() (string, error)                      { return u.EntityI
 func (h HostID) StringErr() (string, error)                   { return h.EntityID().StringErr() }
 func (t TeamID) StringErr() (string, error)                   { return t.EntityID().StringErr() }
 func (u UID) MarshalJSON() ([]byte, error)                    { return marsh(u) }
+func (u UID) MarshalYAML() (any, error)                       { return marsh(u) }
 func (h HostID) MarshalJSON() ([]byte, error)                 { return marsh(h) }
+func (h HostID) MarshalYAML() (any, error)                    { return marsh(h) }
 func (t TeamID) MarshalJSON() ([]byte, error)                 { return marsh(t) }
 func (y YubiID) StringErr() (string, error)                   { return y.EntityID().StringErr() }
 func (y YubiID) EntityID() EntityID                           { return EntityID(y[:]) }

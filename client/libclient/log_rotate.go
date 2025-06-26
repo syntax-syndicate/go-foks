@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
+	"slices"
 	"sync"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 
 type LogRotate struct {
 	sync.Mutex
+
+	nxt time.Time
 
 	// called on shutdown to stop the background loop
 	stopper chan struct{}
@@ -27,7 +30,10 @@ func NewLogRotate() *LogRotate {
 	return &LogRotate{}
 }
 
-func (g *LogRotate) timeUntilLogRotate(m MetaContext) (time.Duration, error) {
+func (g *LogRotate) computeNextRotation(m MetaContext) {
+	g.Lock()
+	defer g.Unlock()
+
 	// We want to rotate logs at 3 AM every day.
 	now := m.G().Now()
 	dayInc := 1
@@ -40,7 +46,14 @@ func (g *LogRotate) timeUntilLogRotate(m MetaContext) (time.Duration, error) {
 	if diff < time.Minute {
 		diff += 24 * time.Hour
 	}
-	return diff, nil
+	g.nxt = nextRotate
+	m.Infow("logrotate", "stage", "computeNextRotation", "next", g.nxt, "diff", diff)
+}
+
+func (g *LogRotate) NextRotation() time.Time {
+	g.Lock()
+	defer g.Unlock()
+	return g.nxt
 }
 
 func (g *LogRotate) WaitForNextRotate(ch chan struct{}) {
@@ -70,6 +83,10 @@ func (g *LogRotate) doLogRotate(m MetaContext) (err error) {
 		}
 	}()
 
+	// We compute the next log rotation even if we fail, so this way
+	// we don't wind up busy-waiting if we fail a rotation.
+	g.computeNextRotation(m)
+
 	nm, err := m.G().OutLogPath()
 	if err != nil {
 		return err
@@ -86,6 +103,62 @@ func (g *LogRotate) doLogRotate(m MetaContext) (err error) {
 	g.unlockWaiters(m)
 
 	return nil
+}
+
+func (g *LogRotate) Run(m MetaContext) error {
+	m = m.WithLogTag("logrotate")
+	ch := make(chan struct{})
+	pokeCh := make(chan struct{})
+	g.stopper = ch
+	g.pokeCh = pokeCh
+	g.computeNextRotation(m)
+	go func() {
+		g.bgLoop(m, ch, pokeCh)
+	}()
+	return nil
+}
+
+// Poke is used in test, especially if we change the clock in G() in the middle
+// of the test run. When that happens, we need to recompute the next wakeup time
+// and force a wakeup.
+func (g *LogRotate) Poke(m MetaContext) {
+	g.computeNextRotation(m)
+	g.pokeCh <- struct{}{}
+}
+
+func (g *LogRotate) Stop() {
+	if g.stopper != nil {
+		tmp := g.stopper
+		g.stopper = nil
+		close(tmp)
+	}
+}
+
+func (g *LogRotate) bgLoop(m MetaContext, stopCh chan struct{}, pokeCh <-chan struct{}) {
+	m = m.Background()
+	m = m.WithLogTag("logrotate")
+
+	for {
+		cw := m.G().ClockWrap()
+		nxt := g.NextRotation()
+
+		select {
+		case <-stopCh:
+			m.Debugw("logrotate", "stage", "stop")
+			return
+		case <-pokeCh:
+			m.Debugw("logrotate", "stage", "poke")
+		case <-m.Ctx().Done():
+			m.Warnw("logrotate", "stage", "ctxDone", "err", m.Ctx().Err())
+			return
+		case <-cw.At(nxt):
+			m.Debugw("logrotate", "stage", "ready")
+			err := g.doLogRotate(m)
+			if err != nil {
+				m.Errorw("logrotate", "stage", "didRotate", "err", err)
+			}
+		}
+	}
 }
 
 func (g *LogRotate) gzipFile(m MetaContext, nm core.Path) (err error) {
@@ -170,7 +243,9 @@ type RotatedLog struct {
 	Timestamp time.Time
 }
 
-func (g *LogRotate) FindRotatedLogs(m MetaContext, nm core.Path) ([]RotatedLog, error) {
+// FindRotatedLogs finds all rotated logs for the given stem nm. It returns them
+// sorted by timestamp in descending order (most recent first).
+func FindRotatedLogs(m MetaContext, nm core.Path) ([]RotatedLog, error) {
 	parent := nm.Dir()
 	files, err := parent.ReadDir()
 	if err != nil {
@@ -189,20 +264,22 @@ func (g *LogRotate) FindRotatedLogs(m MetaContext, nm core.Path) ([]RotatedLog, 
 		timestamp := matches[1]
 		t, err := time.Parse("20060102150405", timestamp)
 		if err != nil {
-			m.Warnw("logrotate", "stage", "FindRotatedLogs", "err", err, "file", file.Name())
-			continue
+			return nil, err
 		}
 		ret = append(ret, RotatedLog{
 			Path:      parent.JoinStrings(file.Name()),
 			Timestamp: t,
 		})
 	}
+	slices.SortFunc(ret, func(a, b RotatedLog) int {
+		return -a.Timestamp.Compare(b.Timestamp)
+	})
 	return ret, nil
 }
 
 func (g *LogRotate) ageOut(m MetaContext, nm core.Path) error {
 
-	logs, err := g.FindRotatedLogs(m, nm)
+	logs, err := FindRotatedLogs(m, nm)
 	if err != nil {
 		return err
 	}
@@ -212,65 +289,11 @@ func (g *LogRotate) ageOut(m MetaContext, nm core.Path) error {
 			m.Debugw("logrotate", "stage", "ageOut", "file", log.Path, "action", "keep")
 			continue
 		}
-		m.Debugw("logrotate", "stage", "ageOut", "file", log.Path, "action", "delete")
+		m.Infow("logrotate", "stage", "ageOut", "file", log.Path, "action", "delete")
 		err := log.Path.Remove()
 		if err != nil {
 			m.Errorw("logrotate", "stage", "ageOut", "err", err, "file", log.Path)
 		}
 	}
 	return nil
-}
-
-func (g *LogRotate) Run(m MetaContext) error {
-	m = m.WithLogTag("logrotate")
-	ch := make(chan struct{})
-	pokeCh := make(chan struct{})
-	g.stopper = ch
-	g.pokeCh = pokeCh
-	go func() {
-		g.bgLoop(m, ch, pokeCh)
-	}()
-	return nil
-}
-
-func (g *LogRotate) Poke() {
-	if g.pokeCh != nil {
-		g.pokeCh <- struct{}{}
-	}
-}
-
-func (g *LogRotate) Stop() {
-	if g.stopper != nil {
-		tmp := g.stopper
-		g.stopper = nil
-		close(tmp)
-	}
-}
-
-func (g *LogRotate) bgLoop(m MetaContext, stopCh chan struct{}, pokeCh <-chan struct{}) {
-	m = m.Background()
-	m = m.WithLogTag("logrotate")
-
-	for {
-		wait, err := g.timeUntilLogRotate(m)
-		if err != nil {
-			m.Errorw("logrotate", "stage", "timeUntilLogRotate", "err", err)
-		}
-		select {
-		case <-stopCh:
-			m.Debugw("logrotate", "stage", "stop")
-			return
-		case <-pokeCh:
-			m.Debugw("logrotate", "stage", "poke")
-		case <-m.Ctx().Done():
-			m.Warnw("logrotate", "stage", "ctxDone", "err", m.Ctx().Err())
-			return
-		case <-m.G().After(wait):
-			m.Debugw("logrotate", "stage", "start")
-			err := g.doLogRotate(m)
-			if err != nil {
-				m.Errorw("logrotate", "stage", "doLogRotate", "err", err)
-			}
-		}
-	}
 }

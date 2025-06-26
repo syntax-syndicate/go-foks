@@ -95,7 +95,9 @@ type GlobalContext struct {
 	rootCAs       *x509.CertPool
 	uis           UIs
 	merkleEracer  func(ctx context.Context, e error) error // In test, a synchronous hook to erase races
-	clock         clockwork.Clock
+
+	clock     clockwork.Clock
+	clockwrap *core.ClockWrap
 
 	shutdownHook func()
 
@@ -130,10 +132,26 @@ type GlobalContext struct {
 
 	logRotate *LogRotate
 
+	// We keep track of the last active server after a signup; this way we can debug signup
+	// problems.
+	lastServer *chains.Probe
+
 	// Other fields that are only set in test
 	Testing *TestingGlobalContext
 
 	nagState *GlobalNagState
+}
+
+func (g *GlobalContext) SetLastServer(d *chains.Probe) {
+	g.Lock()
+	defer g.Unlock()
+	g.lastServer = d
+}
+
+func (g *GlobalContext) GetLastServer() *chains.Probe {
+	g.Lock()
+	defer g.Unlock()
+	return g.lastServer
 }
 
 func (d *GlobalContext) DeviceNameCache() *DeviceNameCache {
@@ -156,21 +174,9 @@ func (g *GlobalContext) PushShutdownHook(h func()) {
 	}
 }
 
-func (g *GlobalContext) After(dur time.Duration) <-chan time.Time {
-	g.Lock()
-	defer g.Unlock()
-	if g.clock == nil {
-		return time.After(dur)
-	}
-	return g.clock.After(dur)
-}
-
 func (g *GlobalContext) Now() time.Time {
 	g.Lock()
 	defer g.Unlock()
-	if g.clock == nil {
-		return time.Now()
-	}
 	return g.clock.Now()
 }
 
@@ -180,10 +186,17 @@ func (g *GlobalContext) Clock() clockwork.Clock {
 	return g.clock
 }
 
+func (g *GlobalContext) ClockWrap() *core.ClockWrap {
+	g.Lock()
+	defer g.Unlock()
+	return g.clockwrap
+}
+
 func (g *GlobalContext) SetClock(c clockwork.Clock) {
 	g.Lock()
 	defer g.Unlock()
 	g.clock = c
+	g.clockwrap = core.NewClockWrap(c)
 }
 
 func (g *GlobalContext) CnameResolver() core.CNameResolver {
@@ -282,6 +295,7 @@ func NewGlobalContext() *GlobalContext {
 		cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	}
 	log := zap.Must(cfg.Build())
+	clock := clockwork.NewRealClock()
 	return &GlobalContext{
 		name:            "cmd",
 		log:             log,
@@ -293,6 +307,8 @@ func NewGlobalContext() *GlobalContext {
 		mode:            GlobalContextModeNormal,
 		oauth2ConfigSet: sso.NewOAuth2ConfigSet(),
 		Testing:         &TestingGlobalContext{},
+		clock:           clock,
+		clockwrap:       core.NewClockWrap(clock),
 	}
 }
 
@@ -615,11 +631,15 @@ func (g *GlobalContext) SetAsAgent(ctx context.Context) error {
 }
 
 func (g *GlobalContext) startLogRotate(ctx context.Context) error {
-	g.Lock()
 	lr := NewLogRotate()
+	err := lr.Run(NewMetaContext(ctx, g))
+	if err != nil {
+		return err
+	}
+	g.Lock()
 	g.logRotate = lr
 	g.Unlock()
-	return lr.Run(NewMetaContext(ctx, g))
+	return nil
 }
 
 func (g *GlobalContext) LogRotate() *LogRotate {

@@ -8,6 +8,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
+
+	proto "github.com/foks-proj/go-foks/proto/lib"
 )
 
 type Path string
@@ -186,4 +189,31 @@ func (p Path) Open() (*os.File, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+func ImportPath(p proto.LocalFSPath) Path {
+	return Path(p.String())
+}
+
+func (p Path) Export() proto.LocalFSPath {
+	return proto.LocalFSPath(p.String())
+}
+
+func (p Path) IsBadFilename() bool {
+	s := p.String()
+	if strings.Contains(s, "..") || strings.Contains(s, "/") || strings.Contains(s, "\\") {
+		return true
+	}
+	return false
+}
+
+func (p Path) StripSuffix(suffix string) (bool, Path) {
+	if !strings.HasSuffix(p.String(), suffix) {
+		return false, p
+	}
+	newPath := strings.TrimSuffix(p.String(), suffix)
+	if newPath == "" {
+		return false, ""
+	}
+	return true, Path(newPath)
 }

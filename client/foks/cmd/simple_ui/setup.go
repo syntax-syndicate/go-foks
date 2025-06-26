@@ -13,5 +13,6 @@ func Setup() libclient.UIs {
 		Backup:     &BackupUI{},
 		SSOLogin:   &SSOLoginUI{},
 		PIN:        &PINUI{},
+		LogSend:    &LogSendUI{},
 	}
 }

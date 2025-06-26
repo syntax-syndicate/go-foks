@@ -5,37 +5,13 @@ package simple_ui
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/foks-proj/go-foks/client/libclient"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 )
 
 type SSOLoginUI struct {
-	spinCh chan struct{}
-	msg    string
-}
-
-func (s *SSOLoginUI) spinner(m libclient.MetaContext) {
-	spinners := []string{
-		"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
-	}
-	spinIdx := 0
-
-	print := func() {
-		fmt.Printf("\r%s %s", s.msg, spinners[spinIdx])
-		spinIdx = (spinIdx + 1) % len(spinners)
-	}
-
-	print()
-	for {
-		select {
-		case <-s.spinCh:
-			return
-		case <-time.After(100 * time.Millisecond):
-			print()
-		}
-	}
+	spinner *Spinner
 }
 
 func (s *SSOLoginUI) ShowSSOLoginURL(m libclient.MetaContext, url proto.URLString) error {
@@ -43,20 +19,23 @@ func (s *SSOLoginUI) ShowSSOLoginURL(m libclient.MetaContext, url proto.URLStrin
 	fmt.Printf("\n")
 	fmt.Printf("     %s\n", url)
 	fmt.Printf("\n")
-	s.spinCh = make(chan struct{})
-	s.msg = "..... (polling for login completion) .... "
-	go s.spinner(m)
+	s.spinner = NewSpinner("..... (polling for login completion) .... ")
+	s.spinner.Start()
 	return nil
 }
 
 func (s *SSOLoginUI) ShowSSOLoginResult(m libclient.MetaContext, res proto.SSOLoginRes, err error) error {
-	close(s.spinCh)
-	fmt.Printf("\r%s", s.msg)
+	var msg string
 	if err != nil {
-		fmt.Printf(" ❌ SSO login failed: %v\n", err)
+		msg = fmt.Sprintf(" ❌ SSO login failed: %v", err)
+	} else {
+		msg = " 🎉 success\n"
+	}
+	s.spinner.Stop(msg)
+	if err != nil {
 		return nil
 	}
-	fmt.Printf(" 🎉 success\n\n")
+
 	fmt.Printf("    🏛️  Issuer: %s\n", res.Issuer)
 	fmt.Printf("    📛 User  : %s\n", res.Username)
 	fmt.Printf("    📧 Email : %s\n\n", res.Email)

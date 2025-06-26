@@ -34,6 +34,7 @@ var _ ID16er = (*PermissionToken)(nil)
 var _ ID16er = (*ReservationToken)(nil)
 var _ ID16er = (*AutocertID)(nil)
 var _ ID16er = (*OAuth2SessionID)(nil)
+var _ ID16er = (*LogSendID)(nil)
 
 func (v *VHostID) Type() ID16Type              { return ID16Type_VHost }
 func (v *VHostID) ToID16() *ID16               { return (*ID16)(v) }
@@ -163,7 +164,7 @@ func (a *OAuth2SessionID) ExportToDB() []byte           { return a.Bytes() }
 func (a *OAuth2SessionID) IsZero() bool                 { return IsZero(a[:]) }
 func (a *OAuth2SessionID) Eq(b OAuth2SessionID) bool    { return id16eq(a, &b) }
 func (a *OAuth2SessionID) String() string               { return stringEatErr(a) }
-func (a *OAuth2SessionID) MarshalJSON() ([]byte, error) { return id16MarshalJSON(a) }
+func (a OAuth2SessionID) MarshalJSON() ([]byte, error)  { return id16MarshalJSON(&a) }
 func (a *OAuth2SessionID) UnmarshalJSON(b []byte) error { return id16UnmarshalJSON(b, a) }
 
 func (a *SSOConfigID) Type() ID16Type               { return ID16Type_SSOConfig }
@@ -176,7 +177,7 @@ func (a *SSOConfigID) ExportToDB() []byte           { return a.Bytes() }
 func (a *SSOConfigID) IsZero() bool                 { return IsZero(a[:]) }
 func (a *SSOConfigID) Eq(b SSOConfigID) bool        { return id16eq(a, &b) }
 func (a *SSOConfigID) String() string               { return stringEatErr(a) }
-func (a *SSOConfigID) MarshalJSON() ([]byte, error) { return id16MarshalJSON(a) }
+func (a SSOConfigID) MarshalJSON() ([]byte, error)  { return id16MarshalJSON(&a) }
 func (a *SSOConfigID) UnmarshalJSON(b []byte) error { return id16UnmarshalJSON(b, a) }
 
 func (a *CKSKeyID) Type() ID16Type               { return ID16Type_CKSKey }
@@ -189,8 +190,21 @@ func (a *CKSKeyID) ExportToDB() []byte           { return a.Bytes() }
 func (a *CKSKeyID) IsZero() bool                 { return IsZero(a[:]) }
 func (a *CKSKeyID) Eq(b SSOConfigID) bool        { return id16eq(a, &b) }
 func (a *CKSKeyID) String() string               { return stringEatErr(a) }
-func (a *CKSKeyID) MarshalJSON() ([]byte, error) { return id16MarshalJSON(a) }
+func (a CKSKeyID) MarshalJSON() ([]byte, error)  { return id16MarshalJSON(&a) }
 func (a *CKSKeyID) UnmarshalJSON(b []byte) error { return id16UnmarshalJSON(b, a) }
+
+func (l *LogSendID) Type() ID16Type               { return ID16Type_LogSend }
+func (l *LogSendID) ToID16() *ID16                { return (*ID16)(l) }
+func (l *LogSendID) BytesMut() []byte             { return l[:] }
+func (l *LogSendID) Name() string                 { return "LogSendID" }
+func (l *LogSendID) ImportFromDB(b []byte) error  { return id16ImportFromBytes(l, b) }
+func (l *LogSendID) StringErr() (string, error)   { return l.ToID16().StringErr() }
+func (l *LogSendID) ExportToDB() []byte           { return l.Bytes() }
+func (l *LogSendID) IsZero() bool                 { return IsZero(l[:]) }
+func (l *LogSendID) Eq(b LogSendID) bool          { return id16eq(l, &b) }
+func (l *LogSendID) String() string               { return stringEatErr(l) }
+func (l LogSendID) MarshalJSON() ([]byte, error)  { return id16MarshalJSON(&l) }
+func (l *LogSendID) UnmarshalJSON(b []byte) error { return id16UnmarshalJSON(b, l) }
 
 func (i *ID16) ToPlanID() (*PlanID, error)                 { return id16ToSubclass[PlanID](i) }
 func (i *ID16) ToVHostID() (*VHostID, error)               { return id16ToSubclass[VHostID](i) }
@@ -215,12 +229,18 @@ func (i *ID16) ToPermissionToken() (*PermissionToken, error) {
 func (i *ID16) ToOAuth2ConfigID() (*SSOConfigID, error) {
 	return id16ToSubclass[SSOConfigID](i)
 }
+func (i *ID16) ToLogSendID() (*LogSendID, error) {
+	return id16ToSubclass[LogSendID](i)
+}
 
 func (t TeamRSVP) MarshalJSON() ([]byte, error) { return id16MarshalJSON(t) }
 
 func NewCancelID() (*CancelID, error) { return RandomID16er[CancelID]() }
 func NewVHostID() (*VHostID, error)   { return RandomID16er[VHostID]() }
-func NilCancelID() []byte             { return []byte{0x00} }
+func NewLogSendID() (*LogSendID, error) {
+	return RandomID16er[LogSendID]()
+}
+func NilCancelID() []byte { return []byte{0x00} }
 
 func id16eq(a, b ID16er) bool {
 	return hmac.Equal(a.Bytes(), b.Bytes())
@@ -300,7 +320,8 @@ func (t ID16Type) IsValid() bool {
 	case ID16Type_Plan, ID16Type_Cancel, ID16Type_Price,
 		ID16Type_VHost, ID16Type_TeamRSVPLocal, ID16Type_TeamRSVPRemote,
 		ID16Type_LocalInstance, ID16Type_PermissionToken, ID16Type_ReservationToken,
-		ID16Type_Autocert, ID16Type_OAuth2Session, ID16Type_SSOConfig, ID16Type_CKSKey:
+		ID16Type_Autocert, ID16Type_OAuth2Session, ID16Type_SSOConfig, ID16Type_CKSKey,
+		ID16Type_LogSend:
 		return true
 	default:
 		return false
@@ -490,4 +511,19 @@ func (t *TeamRSVP) UnmarshalJSON(b []byte) error {
 	}
 	copy((*t)[:], (*tmp)[:])
 	return nil
+}
+
+func (t LogSendIDString) Parse() (*LogSendID, error) {
+	tmp := ID16String(string(t))
+	idp, err := tmp.Parse()
+	if err != nil {
+		return nil, err
+	}
+	typ := idp.Type()
+	switch typ {
+	case ID16Type_LogSend:
+		return (*LogSendID)(idp), nil
+	default:
+		return nil, DataError("bad LogSend ID")
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/foks-proj/go-foks/lib/core"
+	"github.com/foks-proj/go-foks/proto/lib"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/proto/rem"
 	"github.com/foks-proj/go-foks/server/shared"
@@ -80,6 +81,7 @@ func (c *RegClientConn) RegisterProtocols(m shared.MetaContext, srv *rpc.Server)
 		rem.ProbeProtocol(c),
 		rem.TeamGuestProtocol(c),
 		rem.TeamLoaderProtocol(c),
+		rem.LogSendProtocol(c),
 	}
 	for _, p := range prots {
 		if err := srv.RegisterV2(p); err != nil {
@@ -1289,6 +1291,27 @@ func (c *RegClientConn) GetClientVersionInfo(
 	return ret, nil
 }
 
+func (c *RegClientConn) LogSendInit(ctx context.Context) (lib.LogSendID, error) {
+	return shared.LogSendInit(shared.NewMetaContextConn(ctx, c))
+}
+
+func (c *RegClientConn) LogSendInitFile(
+	ctx context.Context,
+	arg rem.LogSendInitFileArg,
+) error {
+	m := shared.NewMetaContextConn(ctx, c)
+	return shared.LogSendInitFile(m, arg)
+}
+
+func (c *RegClientConn) LogSendUploadBlock(
+	ctx context.Context,
+	arg rem.LogSendUploadBlockArg,
+) error {
+	m := shared.NewMetaContextConn(ctx, c)
+	return shared.LogSendUploadBlock(m, arg)
+}
+
 var _ rem.RegInterface = (*RegClientConn)(nil)
 var _ rem.KexInterface = (*RegClientConn)(nil)
 var _ rem.ProbeInterface = (*RegClientConn)(nil)
+var _ rem.LogSendInterface = (*RegClientConn)(nil)

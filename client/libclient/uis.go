@@ -100,6 +100,13 @@ type SSOLoginUIer interface {
 	ShowSSOLoginResult(m MetaContext, res proto.SSOLoginRes, err error) error
 }
 
+type LogSendUIer interface {
+	ShowStartSend(m MetaContext) error
+	ShowCompleteSend(m MetaContext, err error) error
+	ApproveLogs(m MetaContext, log lcl.LogSendSet) error
+	ShowLogSendRes(m MetaContext, res lcl.LogSendRes) error
+}
+
 type UIs struct {
 	Signup     SignupUIer
 	Terminal   TerminalUIer
@@ -108,4 +115,5 @@ type UIs struct {
 	Backup     BackupUIer
 	SSOLogin   SSOLoginUIer
 	PIN        PINUIer
+	LogSend    LogSendUIer
 }

@@ -105,6 +105,7 @@ typedef AutocertID = Blob(17);
 typedef OAuth2SessionID = Blob(17);
 typedef SSOConfigID = Blob(17);
 typedef CKSKeyID = Blob(17);
+typedef LogSendID = Blob(17);
 
 enum ID16Type {
     Plan @61; 
@@ -120,7 +121,8 @@ enum ID16Type {
     OAuth2Session @51;
     SSOConfig @50;
     CKSKey @49;
-    MaxEntityType @48;
+    LogSend @48; 
+    MaxEntityType @47;
 }
 
 // A stringified ID16 (with leading prefix).
@@ -131,6 +133,9 @@ typedef TeamRSVPString = Text;
 
 // A stringified OAuth2SessionID (with leading prefix).
 typedef OAuth2SessionIDString = Text;
+
+// A stringified LogSendID (with leading prefix).
+typedef LogSendIDString = Text;
 
 // Milliseconds since Jan 1, 1970.
 typedef Time = Uint;

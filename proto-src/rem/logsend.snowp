@@ -1,0 +1,32 @@
+@0x9e166032be524272;
+
+go:import "github.com/foks-proj/go-foks/proto/lib" as lib;
+
+typedef LogSendFileID = Uint;
+typedef LogSendBlob = Blob;
+
+protocol LogSend
+    errors lib.Status
+    argHeader lib.Header
+    resHeader lib.Header @0xfa4726d9 {
+
+    logSendInit @1 (
+    ) -> lib.LogSendID;
+
+    logSendInitFile @2 (
+        id @0 : lib.LogSendID,
+        fileID @1 : LogSendFileID,
+        name @2 : lib.LocalFSPath,
+        len @3 : lib.Size,
+        hash @4 : lib.StdHash,
+        nBlocks @5 : Uint 
+    );
+
+    logSendUploadBlock @3 (
+        id @0 : lib.LogSendID,
+        fileID @1 : LogSendFileID,
+        blockNo @2 : Uint,
+        block @3 : LogSendBlob
+    );
+
+}

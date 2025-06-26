@@ -11,6 +11,7 @@ import (
 
 	"github.com/foks-proj/go-foks/lib/core"
 	"github.com/foks-proj/go-foks/proto/infra"
+	"github.com/foks-proj/go-foks/proto/lib"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/proto/rem"
 	"github.com/foks-proj/go-foks/server/shared"
@@ -80,6 +81,7 @@ func (c *UserClientConn) RegisterProtocols(m shared.MetaContext, srv *rpc.Server
 		rem.TeamAdminProtocol(c),
 		rem.TeamLoaderProtocol(c),
 		rem.TeamMemberProtocol(c),
+		rem.LogSendProtocol(c),
 	}
 	for _, p := range prots {
 		err := srv.RegisterV2(p)
@@ -1470,6 +1472,27 @@ func (c *UserClientConn) GetAllYubiManagementKeys(
 	return ret, nil
 }
 
+func (c *UserClientConn) LogSendInitFile(
+	ctx context.Context,
+	arg rem.LogSendInitFileArg,
+) error {
+	m := shared.NewMetaContextConn(ctx, c)
+	return shared.LogSendInitFile(m, arg)
+}
+
+func (c *UserClientConn) LogSendUploadBlock(
+	ctx context.Context,
+	arg rem.LogSendUploadBlockArg,
+) error {
+	m := shared.NewMetaContextConn(ctx, c)
+	return shared.LogSendUploadBlock(m, arg)
+}
+
+func (c *UserClientConn) LogSendInit(ctx context.Context) (lib.LogSendID, error) {
+	return shared.LogSendInit(shared.NewMetaContextConn(ctx, c))
+}
+
 var _ rem.UserInterface = (*UserClientConn)(nil)
 var _ infra.TestServicesInterface = (*UserClientConn)(nil)
 var _ rem.ProbeInterface = (*UserClientConn)(nil)
+var _ rem.LogSendInterface = (*UserClientConn)(nil)
