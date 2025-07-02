@@ -3,6 +3,9 @@
 - Run tests
   - `make proto && make ci`
 
+- Clean build dir
+  - cd build && mkdir v0.0.21 && mv * v0.0.21/
+
 - Version bump
   - Change version in lib/core/version.go 
   - Make a release data in changelog.yml
