@@ -17,8 +17,8 @@ const CurrentCompatibilityVersion proto.CompatibilityVersion = 1
 
 var CurrentSoftwareVersion = proto.SemVer{
 	Major: 0,
-	Minor: 0,
-	Patch: 21,
+	Minor: 1,
+	Patch: 0,
 }
 
 type ParsedSemVer struct {

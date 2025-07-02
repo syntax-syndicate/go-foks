@@ -2,10 +2,10 @@ project: foks
 maintaner: Maxwell Krohn <max@ne43.com>
 
 changelog:
-  - version: 0.0.22
+  - version: 0.1.0
     urgency: low
     stable: false
-    date: none-yet
+    date: 2025-07-02 13:00:00 -0400
     changes:
       - desc: cli - log rotation for agent logs (not for error, just for output)
         closes: []
