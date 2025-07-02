@@ -442,6 +442,7 @@ func runWithAllCommands[T CobraConfigger](
 	rc *RootCommand,
 	lst []T,
 	runner func(m MetaContext, rc *RootCommand, c T, args []string) error,
+	extraCommands [](*cobra.Command),
 ) error {
 	for _, c := range lst {
 		cmd := c
@@ -454,17 +455,20 @@ func runWithAllCommands[T CobraConfigger](
 		}
 		rc.Cmd.AddCommand(cfg)
 	}
+	for _, extraCmd := range extraCommands {
+		rc.Cmd.AddCommand(extraCmd)
+	}
 	return rc.Cmd.ExecuteContext(m.Ctx())
 }
 
-func MainWrapperWithServer(rc *RootCommand, cmds []ServerCommand) {
+func MainWrapperWithServer(rc *RootCommand, cmds []ServerCommand, versionCmd *cobra.Command) {
 	MainWrapper(func(m MetaContext) error {
-		return runWithAllCommands(m, rc, cmds, runServer)
+		return runWithAllCommands(m, rc, cmds, runServer, [](*cobra.Command){versionCmd})
 	})
 }
 
 func MainWrapperWithCLICmd(rc *RootCommand, cmds []CLIApp) {
 	MainWrapper(func(m MetaContext) error {
-		return runWithAllCommands(m, rc, cmds, runCLIApp)
+		return runWithAllCommands(m, rc, cmds, runCLIApp, nil)
 	})
 }

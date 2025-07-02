@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/foks-proj/go-foks/client/libterm"
+	"github.com/foks-proj/go-foks/lib/libterm"
 )
 
 func drawTextInput(ti textinput.Model, prompt string, validator func(string) error) string {

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/foks-proj/go-foks/client/libclient"
-	"github.com/foks-proj/go-foks/client/libterm"
 	"github.com/foks-proj/go-foks/lib/core"
+	"github.com/foks-proj/go-foks/lib/libterm"
 	"github.com/foks-proj/go-foks/proto/lcl"
 	"github.com/spf13/cobra"
 )
