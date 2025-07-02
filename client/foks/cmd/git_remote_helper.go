@@ -12,8 +12,8 @@ import (
 
 	"github.com/foks-proj/go-foks/client/agent"
 	"github.com/foks-proj/go-foks/client/libclient"
-	"github.com/foks-proj/go-foks/client/libterm"
 	"github.com/foks-proj/go-foks/lib/core"
+	"github.com/foks-proj/go-foks/lib/libterm"
 	"github.com/foks-proj/go-foks/proto/lcl"
 	proto "github.com/foks-proj/go-foks/proto/lib"
 	"github.com/foks-proj/go-foks/proto/rem"

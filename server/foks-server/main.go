@@ -67,7 +67,23 @@ func newServerList() []shared.ServerCommand {
 	}
 }
 
+var (
+	LinkerVersion = "unknown"
+)
+
 func main() {
 	core.DebugStop()
-	shared.MainWrapperWithServer(newRootCmd(), newServerList())
+	shared.MainWrapperWithServer(newRootCmd(), newServerList(),
+		&cobra.Command{
+			Use:   "version",
+			Short: "Print the version of the FOKS server",
+			Run: func(cmd *cobra.Command, args []string) {
+				var lv string
+				if LinkerVersion != "unknown" {
+					lv = " (linked as: " + LinkerVersion + ")"
+				}
+				cmd.Printf("%s%s\n", core.CurrentSoftwareVersion.String(), lv)
+			},
+		},
+	)
 }

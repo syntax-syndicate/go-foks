@@ -5,7 +5,7 @@
 
 - Version bump
   - Change version in lib/core/version.go 
-  - Make a relaese data in changelog.yml
+  - Make a release data in changelog.yml
   - `git commit -am "Bump version to vX.Y.Z" && git push`
   - `git tag vX.Y.Z && git push --tags`
 

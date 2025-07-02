@@ -2,6 +2,8 @@ FROM golang:1.24-alpine AS builder
 
 RUN apk add --no-cache ca-certificates
 
+ARG VERSION=""
+
 WORKDIR /build
 
 COPY go.mod go.sum ./
@@ -12,7 +14,11 @@ COPY proto proto
 COPY server server
 COPY conf/srv conf/srv
 RUN CGO_ENABLED=0 GOOS=linux GOFLAGS="-tags=noresinit" \
-    go build -C server/foks-server -o ../../foks-server -trimpath .
+    go build \
+        -C server/foks-server \
+        -o ../../foks-server \
+        -ldflags="-X main.LinkerVersion=${VERSION}" \
+        -trimpath .
 
 FROM scratch
 

@@ -58,7 +58,9 @@ srv-install: srv-assets
 	@echo "Installing server with GOBIN=$(GOBIN)"
 	( \
 		cd server/foks-server && \
-		CGO_ENABLED=1 go install \
+		CGO_ENABLED=0 \
+			go install \
+			-ldflags="-X main.LinkerVersion=$$(git describe --tags --always)" \
 	)
 
 .PHONY: srv-dev
@@ -74,6 +76,7 @@ ghcr-login:
 .PHONY: foks-server-docker-image-latest
 foks-server-docker-image-latest:
 	docker buildx build \
+		--build-arg VERSION=$$(git describe --tags --always) \
 		-f dockerfiles/foks-server.dev \
 		-t foks-server:latest \
 		--platform=linux/arm64,linux/amd64 .
@@ -91,6 +94,7 @@ foks-tool-linux: build/foks-tool.linux.arm64.gz build/foks-tool.linux.amd64.gz
 .PHONY: foks-tool-docker-image-latest
 foks-tool-docker-image-latest:
 	docker buildx build \
+		--build-arg VERSION=$$(git describe --tags --always) \
 		-f dockerfiles/foks-tool.dev \
 		-t foks-tool:latest \
 		--platform=linux/arm64,linux/amd64 .

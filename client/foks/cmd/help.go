@@ -14,7 +14,7 @@ import (
 	"unicode"
 
 	"github.com/foks-proj/go-foks/client/libclient"
-	"github.com/foks-proj/go-foks/client/libterm"
+	"github.com/foks-proj/go-foks/lib/libterm"
 	"github.com/spf13/cobra"
 )
 
