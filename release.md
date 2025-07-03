@@ -22,17 +22,17 @@
   - cp ../go-foks/build/foks_*.deb public/pool/main/f/
   - git commit -a -m "Add foks_*.deb to public pool"
   - git push
-  - startup debian VM
-  - ssh max@192.168.56.5
   - cd src/pkgs
   - git pull
   - bash -x scripts/make-debian-repo.bash
-  - git add public/stable
+  - git add public
   - git commit -a -m 'vX.Y.Z'
   - git push
-  - wait about 10 minutes
+  - startup debian VM
+  - ssh max@192.168.56.5
+  - wait about 3 minutes (cloudflare deploy)
   - sudo apt update
-  - sudo apt upgrade
+  - sudo apt upgrade foks
 
 - RHEL / Fedora / etc
   - `make rpm`
