@@ -9,6 +9,8 @@ changelog:
     changes:
       - desc: add more online documentation for `team` admin commands
         closes: ["#128"]
+      - desc: downgrade dependency on debian to libpcsclite-dev (>= 1.9.5)
+        closes: ["#140"]
   - version: 0.1.0
     urgency: low
     stable: false

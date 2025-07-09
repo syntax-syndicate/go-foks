@@ -58,7 +58,7 @@ Section: utils
 Priority: optional
 Architecture: ${plat}
 Maintainer: Maxwell Krohn <max@ne43.com>
-Depends: libpcsclite-dev (>= 1.9.9), libc6 (>= 2.31)
+Depends: libpcsclite-dev (>= 1.9.5), libc6 (>= 2.31)
 Description: Access the Federated Open Key Service (FOKS)
  with this single CLI-application. Supplies signup, key management,
  team management, KV-store put-get and also git remote helper.
