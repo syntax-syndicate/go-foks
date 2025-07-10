@@ -2,6 +2,7 @@
 # Copyright (c) 2025 ne43, Inc.
 # Licensed under the MIT License. See LICENSE in the project root for details.
 
+set -euo pipefail
 
 if [ -f ./src ]; then 
     echo "Must run configure script from build (not source) directory"
@@ -32,6 +33,7 @@ autocert_bind_port=20080
 prod_ssh=""
 prod_root_ssh=""
 remote_topdir=""
+standalone=false
 
 #
 # needed parameters for starting a new FOKS instance:
@@ -44,7 +46,12 @@ remote_topdir=""
 #  --dev; in dev, we run the server, client and everything on the same host, so therefore need
 #     symlinks from our topdir to a source dir
 #
-#  --base-hostname; the hostname of the base server, e.g. base.ne43.net
+#  --standalone: don't set up a management server or a bigtop server, just the base server 
+#     to be used in "standalone" mode. This is similar to what you would get if you ran
+#     `foks-tool standup`.
+#
+#  --base-hostname; the hostname of the base server, e.g. base.ne43.net; for standalone, this
+#     is the only hostname you need to specify.
 #
 #  --big-top-hostname; the hostname of the bigtop server, e.g. ne43.com; recall this is the server that
 #     will host the teeming unwashed masses of the internet, without any per-server configuration.
@@ -65,15 +72,17 @@ remote_topdir=""
 #  --rds: if you're in prod, you can use this flag to indicate that you want to use RDS for the database,
 #     and not a docker-based postgres instance.
 #
-#  --stripe-pk: stripe public API key
+#  --stripe-pk: stripe public API key; not needed in standalone
 #  
-#  --stripe-sk: stripe secret API key
+#  --stripe-sk: stripe secret API key; not needed in standalone
 #
-#  --stripe-whsec: stripe webhook secret
+#  --stripe-whsec: stripe webhook secret; not needed in standalone
 #
-#  --canned-domain <domain>,<zone_id>: a canned domain and its Route53 zone ID; can be repeated
+#  --canned-domain <domain>,<zone_id>: a canned domain and its Route53 zone ID; can be repeated;
+#     not needed in standalone.
 #
-#  --vanity-hosting-domain <domain>,<zone_id>: a vanity domain and its Route53 zone ID
+#  --vanity-hosting-domain <domain>,<zone_id>: a vanity domain and its Route53 zone ID;
+#     not needed in standalone.
 #
 #  --prod-ssh <user>@<host>: the SSH connection string for the production server 
 # 
@@ -153,6 +162,10 @@ while [[ $# -gt 0 ]]; do
         --remote-topdir)
             shift
             remote_topdir=$1
+            ;;
+        --standalone)
+            shift
+            standalone=true
             ;;
         *)
             echo "Unexpected option" $1
