@@ -118,11 +118,11 @@ win: win-amd64 win-x86
 
 .PHONY: win-x86
 win-x86: proto
-	./scripts/cross-compile-win.bash -p win-x86 -sc
+	./scripts/cross-compile-win.bash -p win-x86 -sg
 
 .PHONY: win-amd64
 win-amd64: proto
-	./scripts/cross-compile-win.bash -p win-amd64 -sc
+	./scripts/cross-compile-win.bash -p win-amd64 -sg
 
 .PHONY: musl-arm64
 musl-arm64:
